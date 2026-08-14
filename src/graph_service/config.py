@@ -129,11 +129,26 @@ def load_config(path: str | Path) -> AppConfig:
         if not 0 <= float(value) <= 1:
             raise ConfigError(f"scoring.section_weights.{key} должен быть от 0 до 1.")
     grade_rules = data.get("grade_rules", {})
+    if not isinstance(grade_rules, dict):
+        raise ConfigError("grade_rules должен быть объектом.")
+    if grade_rules.get("conflict_policy", "keep_best") not in {"keep_best", "exclude"}:
+        raise ConfigError("grade_rules.conflict_policy должен быть keep_best или exclude.")
+    for key in ("title", "text", "experience", "conflict_score_margin", "conflict_min_score"):
+        if key in grade_rules and int(grade_rules[key]) < 0:
+            raise ConfigError(f"grade_rules.{key} не может быть отрицательным.")
+    junior_max_years = int(grade_rules.get("junior_max_years", 1))
+    middle_max_years = int(grade_rules.get("middle_max_years", 4))
+    if junior_max_years < 0 or middle_max_years <= junior_max_years:
+        raise ConfigError("Границы опыта в grade_rules заданы некорректно.")
+    if grade_rules.get("default_grade", "middle") not in SUPPORTED_GRADES:
+        raise ConfigError("grade_rules.default_grade должен быть junior, middle или senior.")
     analysis = {
         "duplicate_title_threshold": 0.88,
         "duplicate_text_threshold": 0.82,
         "unknown_min_vacancies": 2,
         "unknown_limit": 50,
+        "boilerplate_min_vacancies": 2,
+        "boilerplate_min_chars": 80,
         **data.get("analysis", {}),
     }
     for key in ("duplicate_title_threshold", "duplicate_text_threshold"):
@@ -141,6 +156,10 @@ def load_config(path: str | Path) -> AppConfig:
             raise ConfigError(f"analysis.{key} должен быть от 0 до 1.")
     if int(analysis["unknown_min_vacancies"]) < 1 or int(analysis["unknown_limit"]) < 1:
         raise ConfigError("Настройки неизвестных фраз должны быть положительными числами.")
+    if int(analysis["boilerplate_min_vacancies"]) < 2:
+        raise ConfigError("analysis.boilerplate_min_vacancies должен быть не меньше 2.")
+    if int(analysis["boilerplate_min_chars"]) < 20:
+        raise ConfigError("analysis.boilerplate_min_chars должен быть не меньше 20.")
 
     return AppConfig(
         path=config_path,

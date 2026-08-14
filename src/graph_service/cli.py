@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .collectors import HHCollector
@@ -10,6 +12,8 @@ from .collectors.hh import HHCollectorError
 from .config import ConfigError, load_config, load_node_definitions
 from .extraction import ProfessionalPhraseExtractor
 from .pipeline import PipelineError, run_pipeline
+from .storage import write_json
+from .validation import validate_run_directory
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,6 +29,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--run-id", help="Фиксированный ID запуска для теста или отладки.")
     check = subparsers.add_parser("check-config", help="Проверить настройки и словарь без запуска сбора.")
     check.add_argument("--config", required=True, help="Путь к profession_config.json.")
+    probe = subparsers.add_parser("hh-probe", help="Безопасно проверить минимальный реальный сбор HH.")
+    probe.add_argument("--config", required=True, help="Путь к конфигурации с source.type=hh.")
+    probe.add_argument("--output", default="data/hh_probe.json", help="Куда сохранить результат проверки.")
+    probe.add_argument("--limit", type=int, default=5, help="Не больше 20 вакансий; по умолчанию 5.")
+    check_run = subparsers.add_parser("check-run", help="Проверить целостность готовой папки запуска.")
+    check_run.add_argument("--run-dir", required=True, help="Путь к data/runs/<run_id>.")
     return parser
 
 
@@ -56,7 +66,10 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 phrase_versions = phrase_extractor.versions
             if config.source.get("type") == "hh":
-                HHCollector(config.source)
+                hh_collector = HHCollector(config.source)
+                hh_contact_ready = hh_collector.live_contact_ready
+            else:
+                hh_contact_ready = None
         except (ConfigError, HHCollectorError) as exc:
             print(f"Ошибка: {exc}", file=sys.stderr)
             return 2
@@ -69,6 +82,7 @@ def main(argv: list[str] | None = None) -> int:
                     "grades": config.grades,
                     "dictionary_version": dictionary_version,
                     "dictionary_nodes": len(nodes),
+                    "hh_live_contact_ready": hh_contact_ready,
                     **phrase_versions,
                 },
                 ensure_ascii=False,
@@ -76,6 +90,63 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "hh-probe":
+        try:
+            if not 1 <= args.limit <= 20:
+                raise ConfigError("--limit должен быть от 1 до 20.")
+            config = load_config(Path(args.config))
+            if config.source.get("type") != "hh":
+                raise ConfigError("Для hh-probe нужен source.type=hh.")
+            probe_source = {
+                **config.source,
+                "queries": list(config.source.get("queries", []))[:1],
+                "areas": list(config.source.get("areas", []))[:1],
+                "max_pages": 1,
+                "per_page": args.limit,
+                "retries": min(int(config.source.get("retries", 3)), 2),
+            }
+            collector = HHCollector(probe_source)
+            collector.validate_live_contact()
+            result = collector.collect()
+            output_path = Path(args.output).resolve()
+            write_json(
+                output_path,
+                {
+                    "status": "ok",
+                    "checked_at": datetime.now(timezone.utc).isoformat(),
+                    "settings": {
+                        "query": probe_source["queries"][0],
+                        "area": probe_source["areas"][0] if probe_source["areas"] else None,
+                        "limit": args.limit,
+                        "token_used": bool(os.getenv(collector.token_env, "").strip()),
+                    },
+                    "search_responses": result.search_responses,
+                    "vacancies": [
+                        {"normalized": vacancy.to_dict(), "raw": vacancy.raw}
+                        for vacancy in result.vacancies
+                    ],
+                },
+            )
+        except (ConfigError, HHCollectorError, ValueError) as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            return 2
+        print(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "vacancies": len(result.vacancies),
+                    "search_responses": len(result.search_responses),
+                    "output": str(output_path),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "check-run":
+        result = validate_run_directory(Path(args.run_dir))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if result["status"] == "ok" else 1
     parser.error("Неизвестная команда")
     return 2
 

@@ -34,6 +34,10 @@ class GradeDecision:
     confidence: float
     conflict: bool
     signals: dict[str, list[str]]
+    subgrade: str = ""
+    scores: dict[str, int] = field(default_factory=dict)
+    conflict_reasons: tuple[str, ...] = ()
+    resolution: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -63,6 +67,7 @@ class Evidence:
     language: str = "unknown"
     context: str = ""
     matched_alias: str = ""
+    exclusion_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

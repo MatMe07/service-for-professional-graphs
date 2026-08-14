@@ -6,6 +6,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import re
 from typing import Any
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -39,14 +40,37 @@ class HHCollector(Collector):
         self.per_page = min(int(source_config.get("per_page", 20)), 100)
         self.timeout = float(source_config.get("timeout_seconds", 30))
         self.retries = int(source_config.get("retries", 3))
-        self.user_agent = str(source_config.get("user_agent", "ProfessionalGraphService/0.4 (contact@example.com)"))
+        self.user_agent = str(source_config.get("user_agent", "ProfessionalGraphService/0.6 (contact@example.com)"))
+        self.user_agent_env = str(source_config.get("user_agent_env", "HH_USER_AGENT"))
+        environment_user_agent = os.getenv(self.user_agent_env, "").strip()
+        if environment_user_agent:
+            self.user_agent = environment_user_agent
         self.token_env = str(source_config.get("token_env", "HH_API_TOKEN"))
         if not self.queries:
             raise HHCollectorError("Для HH-сборщика нужен хотя бы один source.queries.")
         if self.max_pages < 1 or self.per_page < 1:
             raise HHCollectorError("max_pages и per_page должны быть положительными.")
+        if not 1 <= self.period_days <= 30:
+            raise HHCollectorError("period_days для HH должен быть от 1 до 30.")
         if self.max_pages * self.per_page > 2000:
             raise HHCollectorError("Глубина одной поисковой выдачи HH не должна превышать 2000 результатов.")
+
+    @property
+    def live_contact_ready(self) -> bool:
+        lowered = self.user_agent.lower()
+        email_match = re.search(r"[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}", lowered)
+        return bool(
+            email_match
+            and "example.com" not in lowered
+            and "replace-with" not in lowered
+        )
+
+    def validate_live_contact(self) -> None:
+        if not self.live_contact_ready:
+            raise HHCollectorError(
+                f"Для реального запроса HH укажите контактный HH-User-Agent через {self.user_agent_env}. "
+                "Пример: ProfessionalGraphService/0.6 (project-email@domain.ru)."
+            )
 
     def collect(self) -> CollectionResult:
         brief_items: dict[str, dict[str, Any]] = {}
@@ -104,6 +128,7 @@ class HHCollector(Collector):
         )
 
     def _get_json(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
+        self.validate_live_contact()
         params = {"host": self.host, **params}
         url = f"https://api.hh.ru{path}"
         if params:
@@ -121,7 +146,24 @@ class HHCollector(Collector):
             except urllib.error.HTTPError as exc:
                 body = exc.read().decode("utf-8", errors="replace")
                 if exc.code in {401, 403}:
-                    raise HHCollectorError(f"HH API отклонил запрос ({exc.code}). CAPTCHA и ограничения не обходятся: {body}") from exc
+                    try:
+                        error_types = {
+                            str(item.get("type", ""))
+                            for item in json.loads(body).get("errors", [])
+                            if isinstance(item, dict)
+                        }
+                    except (json.JSONDecodeError, AttributeError):
+                        error_types = set()
+                    if any("captcha" in value for value in error_types):
+                        message = "HH запросил CAPTCHA; автоматический обход запрещён."
+                    elif not token:
+                        message = (
+                            "Анонимный запрос HH отклонён. Нужен токен приложения в переменной "
+                            f"{self.token_env}."
+                        )
+                    else:
+                        message = "HH отклонил авторизованный запрос; проверьте токен и права приложения."
+                    raise HHCollectorError(f"{message} Код {exc.code}, ответ: {body}") from exc
                 if exc.code == 404:
                     raise HHNotFoundError(f"Объект HH не найден: {url}") from exc
                 if exc.code not in {429, 500, 502, 503, 504} or attempt == self.retries - 1:

@@ -1,60 +1,73 @@
 {
-  "version": "0.1.0-demo",
+  "version": "0.2.0-working",
+  "status": "Working ML Engineer baseline; structural changes require curator review.",
   "nodes": [
-    {
-      "name": "Классификация",
-      "aliases": ["классификация", "classification"],
-      "path": ["Задачи"],
-      "kind": "task"
-    },
-    {
-      "name": "Регрессия",
-      "aliases": ["регрессия", "regression"],
-      "path": ["Задачи"],
-      "kind": "task"
-    },
-    {
-      "name": "Прогнозирование",
-      "aliases": ["прогнозирование", "forecasting"],
-      "path": ["Задачи"],
-      "kind": "task"
-    },
-    {
-      "name": "Линейные модели",
-      "aliases": ["линейные модели", "линейная модель", "linear models"],
-      "path": ["Методы"],
-      "kind": "method"
-    },
-    {
-      "name": "Деревья решений",
-      "aliases": ["деревья решений", "дерево решений", "decision trees"],
-      "path": ["Методы"],
-      "kind": "method"
-    },
-    {
-      "name": "Градиентный бустинг",
-      "aliases": ["градиентный бустинг", "gradient boosting", "gbdt"],
-      "path": ["Методы"],
-      "kind": "method"
-    },
-    {
-      "name": "Python",
-      "aliases": ["Python"],
-      "path": ["Технологии"],
-      "kind": "technology"
-    },
-    {
-      "name": "SQL",
-      "aliases": ["SQL"],
-      "path": ["Технологии"],
-      "kind": "technology"
-    },
-    {
-      "name": "Git",
-      "aliases": ["Git"],
-      "path": ["Технологии"],
-      "kind": "technology"
-    }
+    {"name": "Классификация", "aliases": ["классификация", "classification"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Регрессия", "aliases": ["регрессия", "regression"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Прогнозирование", "aliases": ["прогнозирование", "forecasting"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Подготовка данных", "aliases": ["подготовка данных", "предобработка данных", "data preprocessing"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Feature engineering", "aliases": ["feature engineering", "генерация признаков", "конструирование признаков"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Оценка моделей", "aliases": ["оценка моделей", "валидация моделей", "model evaluation", "model validation"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Эксперименты и A/B-тесты", "aliases": ["a/b-тесты", "a/b тесты", "ab-тесты", "ab tests", "a/b testing"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Развёртывание моделей", "aliases": ["развертывание моделей", "развёртывание моделей", "деплой моделей", "model deployment", "deploying models"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Мониторинг моделей", "aliases": ["мониторинг моделей", "model monitoring", "monitoring models"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Оптимизация моделей", "aliases": ["оптимизация моделей", "model optimization", "оптимизация инференса", "inference optimization"], "path": ["Задачи"], "kind": "task"},
+    {"name": "Пайплайны данных", "aliases": ["пайплайны данных", "пайплайнов данных", "data pipelines", "data pipeline"], "path": ["Задачи"], "kind": "task"},
+    {"name": "API для моделей", "aliases": ["api для моделей", "model api", "serving api"], "path": ["Задачи"], "kind": "task"},
+
+    {"name": "Линейные модели", "aliases": ["линейные модели", "линейная модель", "linear models", "linear model"], "path": ["Методы"], "kind": "method"},
+    {"name": "Деревья решений", "aliases": ["деревья решений", "дерево решений", "decision trees", "decision tree"], "path": ["Методы"], "kind": "method"},
+    {"name": "Градиентный бустинг", "aliases": ["градиентный бустинг", "gradient boosting", "gbdt"], "path": ["Методы"], "kind": "method"},
+    {"name": "Кластеризация", "aliases": ["кластеризация", "clustering"], "path": ["Методы"], "kind": "method"},
+    {"name": "Снижение размерности", "aliases": ["снижение размерности", "dimensionality reduction", "pca"], "path": ["Методы"], "kind": "method"},
+    {"name": "Временные ряды", "aliases": ["временные ряды", "time series"], "path": ["Методы"], "kind": "method"},
+    {"name": "Нейронные сети", "aliases": ["нейронные сети", "нейронная сеть", "neural networks", "neural network", "deep learning"], "path": ["Методы"], "kind": "method"},
+    {"name": "NLP", "aliases": ["nlp", "обработка естественного языка", "natural language processing"], "path": ["Методы"], "kind": "method"},
+    {"name": "Computer Vision", "aliases": ["computer vision", "компьютерное зрение"], "path": ["Методы"], "kind": "method"},
+    {"name": "Рекомендательные системы", "aliases": ["рекомендательные системы", "рекомендательная система", "recommendation systems", "recommender systems"], "path": ["Методы"], "kind": "method"},
+    {"name": "Байесовские методы", "aliases": ["байесовские методы", "bayesian methods", "bayesian inference"], "path": ["Методы"], "kind": "method"},
+
+    {"name": "Python", "aliases": ["Python"], "path": ["Технологии"], "kind": "technology"},
+    {"name": "SQL", "aliases": ["SQL"], "path": ["Технологии"], "kind": "technology"},
+    {"name": "Git", "aliases": ["Git"], "path": ["Технологии"], "kind": "technology"},
+    {"name": "NumPy", "aliases": ["NumPy"], "path": ["Технологии"], "kind": "library"},
+    {"name": "pandas", "aliases": ["pandas"], "path": ["Технологии"], "kind": "library"},
+    {"name": "scikit-learn", "aliases": ["scikit-learn", "sklearn"], "path": ["Технологии"], "kind": "library"},
+    {"name": "PyTorch", "aliases": ["PyTorch", "torch"], "path": ["Технологии"], "kind": "library"},
+    {"name": "TensorFlow", "aliases": ["TensorFlow"], "path": ["Технологии"], "kind": "library"},
+    {"name": "XGBoost", "aliases": ["XGBoost"], "path": ["Технологии"], "kind": "library"},
+    {"name": "LightGBM", "aliases": ["LightGBM", "LGBM"], "path": ["Технологии"], "kind": "library"},
+    {"name": "CatBoost", "aliases": ["CatBoost"], "path": ["Технологии"], "kind": "library"},
+    {"name": "OpenCV", "aliases": ["OpenCV"], "path": ["Технологии"], "kind": "library"},
+    {"name": "Hugging Face", "aliases": ["Hugging Face", "transformers library"], "path": ["Технологии"], "kind": "library"},
+    {"name": "Docker", "aliases": ["Docker"], "path": ["Технологии"], "kind": "infrastructure"},
+    {"name": "Kubernetes", "aliases": ["Kubernetes", "k8s"], "path": ["Технологии"], "kind": "infrastructure"},
+    {"name": "Linux", "aliases": ["Linux"], "path": ["Технологии"], "kind": "infrastructure"},
+    {"name": "Bash", "aliases": ["Bash", "shell scripting"], "path": ["Технологии"], "kind": "infrastructure"},
+    {"name": "CI/CD", "aliases": ["CI/CD", "continuous integration", "continuous delivery"], "path": ["Технологии"], "kind": "infrastructure"},
+    {"name": "MLflow", "aliases": ["MLflow"], "path": ["Технологии"], "kind": "mlops"},
+    {"name": "Apache Airflow", "aliases": ["Apache Airflow", "Airflow"], "path": ["Технологии"], "kind": "mlops"},
+    {"name": "DVC", "aliases": ["DVC", "Data Version Control"], "path": ["Технологии"], "kind": "mlops"},
+    {"name": "Kubeflow", "aliases": ["Kubeflow"], "path": ["Технологии"], "kind": "mlops"},
+    {"name": "Feast", "aliases": ["Feast", "feature store"], "path": ["Технологии"], "kind": "mlops"},
+    {"name": "PostgreSQL", "aliases": ["PostgreSQL", "Postgres"], "path": ["Технологии"], "kind": "database"},
+    {"name": "ClickHouse", "aliases": ["ClickHouse"], "path": ["Технологии"], "kind": "database"},
+    {"name": "Redis", "aliases": ["Redis"], "path": ["Технологии"], "kind": "database"},
+    {"name": "MongoDB", "aliases": ["MongoDB"], "path": ["Технологии"], "kind": "database"},
+    {"name": "Apache Spark", "aliases": ["Apache Spark", "PySpark", "Spark"], "path": ["Технологии"], "kind": "data_platform"},
+    {"name": "Apache Kafka", "aliases": ["Apache Kafka", "Kafka"], "path": ["Технологии"], "kind": "data_platform"},
+    {"name": "FastAPI", "aliases": ["FastAPI"], "path": ["Технологии"], "kind": "framework"},
+    {"name": "Jupyter", "aliases": ["Jupyter", "Jupyter Notebook"], "path": ["Технологии"], "kind": "tool"},
+
+    {"name": "Теория вероятностей", "aliases": ["теория вероятностей", "probability theory"], "path": ["Математика"], "kind": "knowledge"},
+    {"name": "Математическая статистика", "aliases": ["математическая статистика", "матстатистика", "mathematical statistics"], "path": ["Математика"], "kind": "knowledge"},
+    {"name": "Линейная алгебра", "aliases": ["линейная алгебра", "linear algebra"], "path": ["Математика"], "kind": "knowledge"},
+    {"name": "Математическая оптимизация", "aliases": ["математическая оптимизация", "методы оптимизации", "mathematical optimization"], "path": ["Математика"], "kind": "knowledge"},
+
+    {"name": "Контроль качества данных", "aliases": ["качество данных", "контроль качества данных", "data quality"], "path": ["Работа с данными"], "kind": "data_skill"},
+    {"name": "ETL/ELT", "aliases": ["ETL", "ELT", "ETL/ELT"], "path": ["Работа с данными"], "kind": "data_skill"},
+    {"name": "Анализ данных", "aliases": ["анализ данных", "data analysis"], "path": ["Работа с данными"], "kind": "data_skill"},
+    {"name": "Визуализация данных", "aliases": ["визуализация данных", "data visualization"], "path": ["Работа с данными"], "kind": "data_skill"},
+    {"name": "Разметка данных", "aliases": ["разметка данных", "data labeling", "data annotation"], "path": ["Работа с данными"], "kind": "data_skill"}
   ]
 }
-

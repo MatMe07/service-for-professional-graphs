@@ -48,8 +48,14 @@ class PipelineTests(unittest.TestCase):
             )
             self.assertEqual(report["professional_phrase_occurrences"], 1)
             self.assertEqual(report["professional_phrase_candidates"], 2)
+            self.assertEqual(report["repeated_boilerplate_blocks"], 1)
+            self.assertEqual(report["repeated_boilerplate_fragment_occurrences"], 2)
+            self.assertEqual(report["excluded_evidence_count"], 2)
             self.assertTrue((Path(report["run_directory"]) / "phrase_evidence.json").exists())
             self.assertIn("professional_phrases", normalized)
+            self.assertTrue((Path(report["run_directory"]) / "review_report.html").exists())
+            self.assertTrue((Path(report["run_directory"]) / "review_decisions_template.json").exists())
+            self.assertTrue((Path(report["run_directory"]) / "grade_conflicts.json").exists())
 
             second = run_pipeline(
                 config_path=PROJECT_ROOT / "examples" / "profession_config.json",

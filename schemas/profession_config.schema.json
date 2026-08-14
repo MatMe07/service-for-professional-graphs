@@ -33,6 +33,7 @@
         "per_page": {"type": "integer", "minimum": 1, "maximum": 100},
         "max_pages": {"type": "integer", "minimum": 1},
         "user_agent": {"type": "string"},
+        "user_agent_env": {"type": "string"},
         "token_env": {"type": "string"},
         "include_inactive": {"type": "boolean"}
       },

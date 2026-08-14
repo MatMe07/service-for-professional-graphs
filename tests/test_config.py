@@ -50,6 +50,20 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ConfigError):
                 load_config(path)
 
+    def test_rejects_invalid_grade_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "nodes.json").write_text('{"nodes": []}', encoding="utf-8")
+            config = {
+                "profession": {"name": "Тест", "slug": "test"},
+                "dictionaries": {"nodes": "nodes.json"},
+                "grade_rules": {"junior_max_years": 4, "middle_max_years": 3},
+            }
+            path = root / "config.json"
+            path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaises(ConfigError):
+                load_config(path)
+
 
 if __name__ == "__main__":
     unittest.main()

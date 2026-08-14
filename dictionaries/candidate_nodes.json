@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0-review",
+  "status": "Candidates only; these nodes are not used by the graph builder.",
+  "items": [
+    {"name": "LLM", "aliases": ["LLM", "large language models", "большие языковые модели"], "suggested_path": ["Методы"], "reason": "Зависит от выбранного профиля ML-инженера."},
+    {"name": "RAG", "aliases": ["RAG", "retrieval augmented generation"], "suggested_path": ["Методы"], "reason": "Нужно решить, входит ли GenAI в базовый профиль."},
+    {"name": "Prompt engineering", "aliases": ["prompt engineering", "промпт-инжиниринг"], "suggested_path": ["Задачи"], "reason": "Может быть отдельной специализацией, а не базовой нодой."},
+    {"name": "Векторные базы данных", "aliases": ["vector database", "vector databases", "векторные базы данных"], "suggested_path": ["Технологии"], "reason": "Актуально главным образом для GenAI/RAG-проектов."},
+    {"name": "ONNX", "aliases": ["ONNX"], "suggested_path": ["Технологии"], "reason": "Узкий инструмент оптимизации и переноса моделей."},
+    {"name": "NVIDIA Triton", "aliases": ["NVIDIA Triton", "Triton Inference Server"], "suggested_path": ["Технологии"], "reason": "Узкий production-инструмент."},
+    {"name": "AWS", "aliases": ["AWS", "Amazon Web Services"], "suggested_path": ["Технологии"], "reason": "Нужно решить: общая нода облаков или отдельные провайдеры."},
+    {"name": "Google Cloud", "aliases": ["GCP", "Google Cloud"], "suggested_path": ["Технологии"], "reason": "Нужно решить: общая нода облаков или отдельные провайдеры."},
+    {"name": "Microsoft Azure", "aliases": ["Azure", "Microsoft Azure"], "suggested_path": ["Технологии"], "reason": "Нужно решить: общая нода облаков или отдельные провайдеры."}
+  ]
+}

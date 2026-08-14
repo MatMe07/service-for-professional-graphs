@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from graph_service.collectors.file import FileCollector
-from graph_service.collectors.hh import HHCollector
+from graph_service.collectors.hh import HHCollector, HHCollectorError
 
 
 class FileCollectionTests(unittest.TestCase):
@@ -63,6 +64,19 @@ class HHCollectionTests(unittest.TestCase):
         result = collector.collect()
         self.assertEqual(len(result.search_responses), 1)
         self.assertEqual(result.vacancies[0].query_ids, ("hh:q001:area:1",))
+
+    def test_placeholder_contact_is_rejected_for_live_request(self) -> None:
+        with patch.dict("os.environ", {"HH_USER_AGENT": ""}):
+            collector = HHCollector({"queries": ["ML Engineer"]})
+        self.assertFalse(collector.live_contact_ready)
+        with self.assertRaises(HHCollectorError):
+            collector.validate_live_contact()
+
+    def test_user_agent_can_be_supplied_through_environment(self) -> None:
+        with patch.dict("os.environ", {"HH_USER_AGENT": "ProfessionalGraphService/0.6 (team@domain.ru)"}):
+            collector = HHCollector({"queries": ["ML Engineer"]})
+        self.assertTrue(collector.live_contact_ready)
+        collector.validate_live_contact()
 
 
 if __name__ == "__main__":

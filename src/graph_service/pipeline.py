@@ -5,7 +5,14 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .analysis import find_probable_reposts
+from .analysis import (
+    apply_boilerplate_exclusions,
+    build_review_decisions_template,
+    build_review_report,
+    detect_repeated_boilerplate,
+    find_probable_reposts,
+    render_review_html,
+)
 from .assets import build_assets
 from .collectors import FileCollector, HHCollector
 from .config import AppConfig, load_config, load_node_definitions, read_json
@@ -14,7 +21,7 @@ from .graph import build_grade_graphs, calculate_counts, decide_grade
 from .learning import build_course_dictionary
 from .models import CollectionResult, Grade
 from .parsing import parse_text
-from .storage import RunStorage, VacancyHistory, make_run_id, safe_record_name, write_json
+from .storage import RunStorage, VacancyHistory, make_run_id, safe_record_name, write_json, write_text
 from .validation import validate_graph, validate_product_layers
 from .validation.contracts import collect_leaf_names
 
@@ -69,11 +76,13 @@ def run_pipeline(
     vacancy_grades: dict[str, Grade] = {}
     grade_decisions: dict[str, dict[str, Any]] = {}
     all_evidence = []
+    excluded_evidence = []
     all_phrase_occurrences = []
     excluded_conflicts: list[str] = []
     parsed_vacancies = []
     history_records: dict[str, dict[str, Any]] = {}
     inactive_excluded: list[str] = []
+    prepared_records = []
     conflict_policy = str(config.grade_rules.get("conflict_policy", "keep_best"))
 
     for vacancy in vacancies:
@@ -99,20 +108,50 @@ def run_pipeline(
             )
             continue
         parsed = parse_text(f"{vacancy.name}\n{vacancy.description}")
-        parsed_vacancies.append((vacancy, parse_text(vacancy.description)))
-        decision = decide_grade(vacancy, config.grade_rules.get("signals", {}))
+        description_parsed = parse_text(vacancy.description)
+        decision = decide_grade(vacancy, config.grade_rules)
         grade_decisions[vacancy.vacancy_id] = decision.to_dict()
         if decision.conflict and conflict_policy == "exclude":
             excluded_conflicts.append(vacancy.vacancy_id)
+            write_json(
+                storage.normalized_dir / f"{safe_record_name(vacancy.vacancy_id)}.json",
+                {
+                    "vacancy": vacancy.to_dict(),
+                    "grade": decision.to_dict(),
+                    **parsed.to_dict(),
+                    "excluded_reason": "grade_conflict",
+                },
+            )
             continue
         vacancy_grades[vacancy.vacancy_id] = decision.grade
-        evidence = matcher.match(vacancy.vacancy_id, parsed, decision.grade)
+        prepared_records.append((vacancy, parsed, description_parsed, decision))
+
+    boilerplate_reasons, boilerplate_matches = detect_repeated_boilerplate(
+        [(vacancy, parsed) for vacancy, parsed, _, _ in prepared_records],
+        min_vacancies=int(config.analysis["boilerplate_min_vacancies"]),
+        min_chars=int(config.analysis["boilerplate_min_chars"]),
+    )
+    parsed_by_vacancy = {}
+    for vacancy, parsed, description_parsed, decision in prepared_records:
+        parsed = apply_boilerplate_exclusions(vacancy, parsed, boilerplate_reasons)
+        description_parsed = apply_boilerplate_exclusions(vacancy, description_parsed, boilerplate_reasons)
+        parsed_by_vacancy[vacancy.vacancy_id] = parsed
+        parsed_vacancies.append((vacancy, description_parsed))
+        audited_evidence = matcher.match(
+            vacancy.vacancy_id,
+            parsed,
+            decision.grade,
+            include_excluded=True,
+        )
+        evidence = [item for item in audited_evidence if item.exclusion_reason is None]
+        ignored_evidence = [item for item in audited_evidence if item.exclusion_reason is not None]
         phrase_occurrences = (
             phrase_extractor.extract(vacancy.vacancy_id, parsed, decision.grade)
             if phrase_extractor is not None
             else []
         )
         all_evidence.extend(evidence)
+        excluded_evidence.extend(ignored_evidence)
         all_phrase_occurrences.extend(phrase_occurrences)
         write_json(
             storage.normalized_dir / f"{safe_record_name(vacancy.vacancy_id)}.json",
@@ -121,6 +160,7 @@ def run_pipeline(
                 "grade": decision.to_dict(),
                 **parsed.to_dict(),
                 "matched_nodes": sorted({item.node_name for item in evidence}),
+                "excluded_skill_mentions": [item.to_dict() for item in ignored_evidence],
                 "professional_phrases": [item.to_dict() for item in phrase_occurrences],
             },
         )
@@ -178,11 +218,55 @@ def run_pipeline(
     ]
 
     write_json(storage.root / "evidence.json", [item.to_dict() for item in all_evidence])
+    write_json(storage.root / "excluded_evidence.json", [item.to_dict() for item in excluded_evidence])
     write_json(storage.root / "phrase_evidence.json", [item.to_dict() for item in all_phrase_occurrences])
     phrase_candidates = build_phrase_candidates(all_phrase_occurrences)
     write_json(storage.root / "phrase_candidates.json", phrase_candidates)
+    explicit_company_fragments = sum(
+        fragment.exclusion_reason == "company_section"
+        for parsed in parsed_by_vacancy.values()
+        for fragment in parsed.fragments
+    )
+    repeated_fragments = sum(
+        fragment.exclusion_reason == "repeated_employer_boilerplate"
+        for parsed in parsed_by_vacancy.values()
+        for fragment in parsed.fragments
+    )
+    boilerplate_report = {
+        "status": "excluded fragments remain available for audit",
+        "settings": {
+            "min_vacancies": int(config.analysis["boilerplate_min_vacancies"]),
+            "min_chars": int(config.analysis["boilerplate_min_chars"]),
+        },
+        "explicit_company_fragments": explicit_company_fragments,
+        "repeated_fragment_occurrences": repeated_fragments,
+        "repeated_blocks": [item.to_dict() for item in boilerplate_matches],
+    }
+    write_json(storage.root / "boilerplate_report.json", boilerplate_report)
     write_json(storage.root / "scoring_components.json", scoring_components)
     write_json(storage.root / "grade_decisions.json", grade_decisions)
+    grade_conflict_items = [
+        {
+            "vacancy_id": vacancy.vacancy_id,
+            "title": vacancy.name,
+            "employer": vacancy.employer,
+            "url": vacancy.alternate_url,
+            "decision": grade_decisions[vacancy.vacancy_id],
+            "policy": conflict_policy,
+            "pipeline_action": "excluded" if vacancy.vacancy_id in excluded_conflicts else "kept_highest_score",
+            "review_required": True,
+        }
+        for vacancy in vacancies
+        if vacancy.vacancy_id in grade_decisions and grade_decisions[vacancy.vacancy_id]["conflict"]
+    ]
+    write_json(
+        storage.root / "grade_conflicts.json",
+        {
+            "status": "manual_review_required" if grade_conflict_items else "no_conflicts",
+            "conflict_policy": conflict_policy,
+            "items": grade_conflict_items,
+        },
+    )
     write_json(storage.root / "vacancy_versions.json", history_records)
     unclassified = mine_unknown_phrases(
         parsed_vacancies,
@@ -191,6 +275,23 @@ def run_pipeline(
         limit=int(config.analysis["unknown_limit"]),
     )
     write_json(storage.root / "unclassified.json", unclassified)
+    review_report = build_review_report(
+        included,
+        vacancy_grades,
+        grade_decisions,
+        parsed_by_vacancy,
+        all_evidence,
+        excluded_evidence,
+        all_phrase_occurrences,
+        phrase_candidates,
+        boilerplate_matches,
+    )
+    write_json(storage.root / "review_report.json", review_report)
+    write_text(storage.root / "review_report.html", render_review_html(review_report))
+    write_json(
+        storage.root / "review_decisions_template.json",
+        build_review_decisions_template(phrase_candidates, boilerplate_matches, included),
+    )
     probable_reposts = find_probable_reposts(
         vacancies,
         title_threshold=float(config.analysis["duplicate_title_threshold"]),
@@ -220,14 +321,20 @@ def run_pipeline(
         "probable_reposts": len(probable_reposts),
         "unknown_phrase_candidates": len(unclassified["items"]),
         "grade_conflicts": [vacancy_id for vacancy_id, value in grade_decisions.items() if value["conflict"]],
+        "grade_conflict_count": len(grade_conflict_items),
         "excluded_conflicts": excluded_conflicts,
         "evidence_count": len(all_evidence),
+        "excluded_evidence_count": len(excluded_evidence),
+        "excluded_company_fragments": explicit_company_fragments,
+        "repeated_boilerplate_blocks": len(boilerplate_matches),
+        "repeated_boilerplate_fragment_occurrences": repeated_fragments,
         "professional_phrase_occurrences": len(all_phrase_occurrences),
         "professional_phrase_candidates": len(phrase_candidates["items"]),
         "output_nodes": len(used_names),
         "graph_issues": graph_issues,
         "product_issues": product_issues,
         "temporary_implementations": [
+            "canonical dictionary structure awaits curator approval",
             "grade rules and conflict policy",
             "count formula and coefficients",
             "template SVG design",
@@ -235,6 +342,7 @@ def run_pipeline(
             "probable reposts are reported but not automatically excluded",
             "parallel history writes are not locked",
             "professional phrases remain candidates until curator review",
+            "live HH probe reached the API but anonymous access was rejected; application token is required",
         ],
     }
     errors = [

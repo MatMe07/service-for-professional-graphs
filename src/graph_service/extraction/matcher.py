@@ -17,11 +17,19 @@ class DictionaryMatcher:
                 pattern = re.compile(rf"(?<!\w){re.escape(normalized)}(?!\w)", flags=re.IGNORECASE)
                 self.patterns.append((node, alias, pattern))
 
-    def match(self, vacancy_id: str, parsed: ParsedText, grade: Grade) -> list[Evidence]:
+    def match(
+        self,
+        vacancy_id: str,
+        parsed: ParsedText,
+        grade: Grade,
+        include_excluded: bool = False,
+    ) -> list[Evidence]:
         evidence: list[Evidence] = []
         occupied: dict[tuple[str, int], list[tuple[int, int]]] = {}
         for node, alias, pattern in self.patterns:
             for fragment in parsed.fragments:
+                if fragment.exclusion_reason and not include_excluded:
+                    continue
                 for found in pattern.finditer(fragment.normalized):
                     occupied_key = (node.name, fragment.index)
                     spans = occupied.setdefault(occupied_key, [])
@@ -49,6 +57,7 @@ class DictionaryMatcher:
                             language=fragment.language,
                             context=context,
                             matched_alias=alias,
+                            exclusion_reason=fragment.exclusion_reason,
                         )
                     )
         return sorted(evidence, key=lambda item: (item.start, item.end, item.node_name))

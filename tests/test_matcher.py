@@ -37,13 +37,15 @@ class MatcherTests(unittest.TestCase):
         self.assertEqual(by_node["SQL"].requiredness, "required")
         self.assertEqual(by_node["SQL"].section, "requirements")
 
-    def test_company_mention_keeps_section_for_scoring(self) -> None:
+    def test_company_mention_is_excluded_but_available_for_audit(self) -> None:
         node = NodeDefinition("Python", ("Python",), ("Языки",))
-        evidence = DictionaryMatcher([node], "test").match(
-            "vacancy-4", parse_text("О компании:\nМы обучаем Python десять лет."), "middle"
-        )
-        self.assertEqual(evidence[0].section, "company")
-        self.assertEqual(evidence[0].fragment_text, "Мы обучаем Python десять лет.")
+        matcher = DictionaryMatcher([node], "test")
+        parsed = parse_text("О компании:\nМы обучаем Python десять лет.")
+        self.assertEqual(matcher.match("vacancy-4", parsed, "middle"), [])
+        audited = matcher.match("vacancy-4", parsed, "middle", include_excluded=True)
+        self.assertEqual(audited[0].section, "company")
+        self.assertEqual(audited[0].fragment_text, "Мы обучаем Python десять лет.")
+        self.assertEqual(audited[0].exclusion_reason, "company_section")
 
 
 if __name__ == "__main__":

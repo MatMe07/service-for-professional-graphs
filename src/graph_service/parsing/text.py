@@ -89,6 +89,7 @@ class TextFragment:
     end: int
     language: Language
     requiredness: Requiredness
+    exclusion_reason: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -175,6 +176,7 @@ def _append_fragments(
                 end=start + len(text),
                 language=detect_language(text),
                 requiredness=requiredness,
+                exclusion_reason="company_section" if section == "company" else None,
             )
         )
 

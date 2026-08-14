@@ -15,6 +15,13 @@ def write_json(path: Path, data: Any) -> None:
     temporary.replace(path)
 
 
+def write_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(value, encoding="utf-8")
+    temporary.replace(path)
+
+
 def stable_json_hash(data: Any) -> str:
     payload = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()

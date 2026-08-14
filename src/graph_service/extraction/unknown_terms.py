@@ -59,7 +59,10 @@ def mine_unknown_phrases(
     examples: dict[str, list[dict[str, str]]] = defaultdict(list)
 
     for vacancy, parsed in parsed_vacancies:
-        tokens = _tokenize(parsed.normalized)
+        included_text = " ".join(
+            fragment.normalized for fragment in parsed.fragments if fragment.exclusion_reason is None
+        )
+        tokens = _tokenize(included_text)
         ignored = [False] * len(tokens)
         for start in range(len(tokens)):
             for sequence in known_sequences:

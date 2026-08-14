@@ -24,16 +24,16 @@
     {
       "id": "demo-middle-1",
       "name": "Middle ML Engineer",
-      "employer": {"name": "Demo Product A"},
+      "employer": {"name": "Demo Product Group"},
       "area": {"name": "Москва"},
-      "description": "Опыт от 2 лет. Самостоятельно решать задачи классификации, регрессии и прогнозирования. Необходимо применять линейные модели, деревья решений и градиентный бустинг. Стек: Python, SQL, Git. Обязанности: разработка и внедрение ML-моделей."
+      "description": "Опыт от 2 лет. Самостоятельно решать задачи классификации, регрессии и прогнозирования. Необходимо применять линейные модели, деревья решений и градиентный бустинг. Стек: Python, SQL, Git. Обязанности: разработка и внедрение ML-моделей. Наша компания предлагает корпоративное обучение Python, расширенную программу ДМС, гибкий график и современный комфортный офис."
     },
     {
       "id": "demo-middle-2",
       "name": "ML-инженер",
-      "employer": {"name": "Demo Product B"},
+      "employer": {"name": "Demo Product Group"},
       "area": {"name": "Новосибирск"},
-      "description": "Опыт 3 года. Требуется Python, SQL и Git. Классификация, regression, forecasting. Желательно знать linear models, decision trees и GBDT."
+      "description": "Опыт 3 года. Требуется Python, SQL и Git. Классификация, regression, forecasting. Желательно знать linear models, decision trees и GBDT. Наша компания предлагает корпоративное обучение Python, расширенную программу ДМС, гибкий график и современный комфортный офис."
     },
     {
       "id": "demo-middle-3",

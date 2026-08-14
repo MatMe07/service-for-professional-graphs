@@ -23,6 +23,14 @@
   },
   "grade_rules": {
     "conflict_policy": "keep_best",
+    "title": 5,
+    "text": 1,
+    "experience": 3,
+    "conflict_score_margin": 2,
+    "conflict_min_score": 3,
+    "junior_max_years": 1,
+    "middle_max_years": 4,
+    "default_grade": "middle",
     "signals": {}
   },
   "scoring": {
@@ -46,6 +54,8 @@
     "duplicate_title_threshold": 0.88,
     "duplicate_text_threshold": 0.82,
     "unknown_min_vacancies": 2,
-    "unknown_limit": 50
+    "unknown_limit": 50,
+    "boilerplate_min_vacancies": 2,
+    "boilerplate_min_chars": 80
   }
 }

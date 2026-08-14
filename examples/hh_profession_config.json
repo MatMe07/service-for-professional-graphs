@@ -15,7 +15,8 @@
     "max_pages": 1,
     "retries": 3,
     "timeout_seconds": 30,
-    "user_agent": "ProfessionalGraphService/0.4 (replace-with-project-email@example.com)",
+    "user_agent": "ProfessionalGraphService/0.6 (replace-with-project-email@example.com)",
+    "user_agent_env": "HH_USER_AGENT",
     "token_env": "HH_API_TOKEN",
     "include_inactive": false
   },
@@ -32,6 +33,14 @@
   },
   "grade_rules": {
     "conflict_policy": "keep_best",
+    "title": 5,
+    "text": 1,
+    "experience": 3,
+    "conflict_score_margin": 2,
+    "conflict_min_score": 3,
+    "junior_max_years": 1,
+    "middle_max_years": 4,
+    "default_grade": "middle",
     "signals": {}
   },
   "scoring": {
@@ -54,6 +63,8 @@
     "duplicate_title_threshold": 0.88,
     "duplicate_text_threshold": 0.82,
     "unknown_min_vacancies": 2,
-    "unknown_limit": 50
+    "unknown_limit": 50,
+    "boilerplate_min_vacancies": 2,
+    "boilerplate_min_chars": 80
   }
 }

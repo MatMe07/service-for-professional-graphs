@@ -85,6 +85,8 @@ class ProfessionalPhraseExtractor:
     def extract(self, vacancy_id: str, parsed: ParsedText, grade: Grade) -> list[PhraseOccurrence]:
         result: list[PhraseOccurrence] = []
         for fragment in parsed.fragments:
+            if fragment.exclusion_reason:
+                continue
             compound_spans: list[tuple[int, int]] = []
             for match in self.compound_pattern.finditer(fragment.normalized):
                 compound_spans.append(match.span())
