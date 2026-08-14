@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/strict_graph.schema.json",
+  "title": "Strict professional graph",
+  "type": "object",
+  "minProperties": 1,
+  "maxProperties": 1,
+  "additionalProperties": {"$ref": "#/$defs/branch"},
+  "$defs": {
+    "leaf": {
+      "type": "object",
+      "properties": {
+        "count": {"type": "integer", "minimum": 1, "maximum": 100}
+      },
+      "required": ["count"],
+      "additionalProperties": false
+    },
+    "branch": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/$defs/leaf"},
+          {"$ref": "#/$defs/branch"}
+        ]
+      }
+    }
+  }
+}
+

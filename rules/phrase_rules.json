@@ -1,0 +1,58 @@
+{
+  "version": "0.4.0-candidate",
+  "actions": [
+    {
+      "id": "development",
+      "name": "Разработка",
+      "aliases": ["разработка", "разрабатывать", "develop", "developing", "development"]
+    },
+    {
+      "id": "creation",
+      "name": "Создание",
+      "aliases": ["создание", "создавать", "create", "creating", "creation"]
+    },
+    {
+      "id": "implementation",
+      "name": "Внедрение",
+      "aliases": ["внедрение", "внедрять", "implement", "implementing", "implementation"]
+    },
+    {
+      "id": "deployment",
+      "name": "Развёртывание",
+      "aliases": ["развертывание", "развёртывание", "развертывать", "развёртывать", "deploy", "deploying", "deployment"]
+    },
+    {
+      "id": "training",
+      "name": "Обучение",
+      "aliases": ["обучение", "обучать", "train", "training"]
+    },
+    {
+      "id": "monitoring",
+      "name": "Мониторинг",
+      "aliases": ["мониторинг", "monitor", "monitoring"]
+    }
+  ],
+  "objects": [
+    {
+      "id": "ml_models",
+      "name": "ML-моделей",
+      "aliases": ["ml-моделей", "ml моделей", "ml-модели", "ml модели", "моделей машинного обучения", "модели машинного обучения", "machine learning models", "ml models"]
+    },
+    {
+      "id": "data_pipelines",
+      "name": "пайплайнов данных",
+      "aliases": ["пайплайнов данных", "пайплайны данных", "data pipelines"]
+    },
+    {
+      "id": "recommendation_systems",
+      "name": "рекомендательных систем",
+      "aliases": ["рекомендательных систем", "рекомендательные системы", "recommendation systems", "recommender systems"]
+    },
+    {
+      "id": "api",
+      "name": "API",
+      "aliases": ["api"]
+    }
+  ],
+  "status": "Candidate extraction only. Rules do not add graph nodes automatically."
+}

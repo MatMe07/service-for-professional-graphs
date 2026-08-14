@@ -1,0 +1,6 @@
+{
+  "version": "0.4.0-candidate",
+  "connectors": ["и", "а также", "and", "&"],
+  "extract_single_action_phrases": true,
+  "status": "Coordinated actions are expanded into review candidates only."
+}

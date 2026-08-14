@@ -1,0 +1,60 @@
+{
+  "version": "0.1.0-demo",
+  "nodes": [
+    {
+      "name": "Классификация",
+      "aliases": ["классификация", "classification"],
+      "path": ["Задачи"],
+      "kind": "task"
+    },
+    {
+      "name": "Регрессия",
+      "aliases": ["регрессия", "regression"],
+      "path": ["Задачи"],
+      "kind": "task"
+    },
+    {
+      "name": "Прогнозирование",
+      "aliases": ["прогнозирование", "forecasting"],
+      "path": ["Задачи"],
+      "kind": "task"
+    },
+    {
+      "name": "Линейные модели",
+      "aliases": ["линейные модели", "линейная модель", "linear models"],
+      "path": ["Методы"],
+      "kind": "method"
+    },
+    {
+      "name": "Деревья решений",
+      "aliases": ["деревья решений", "дерево решений", "decision trees"],
+      "path": ["Методы"],
+      "kind": "method"
+    },
+    {
+      "name": "Градиентный бустинг",
+      "aliases": ["градиентный бустинг", "gradient boosting", "gbdt"],
+      "path": ["Методы"],
+      "kind": "method"
+    },
+    {
+      "name": "Python",
+      "aliases": ["Python"],
+      "path": ["Технологии"],
+      "kind": "technology"
+    },
+    {
+      "name": "SQL",
+      "aliases": ["SQL"],
+      "path": ["Технологии"],
+      "kind": "technology"
+    },
+    {
+      "name": "Git",
+      "aliases": ["Git"],
+      "path": ["Технологии"],
+      "kind": "technology"
+    }
+  ]
+}
+

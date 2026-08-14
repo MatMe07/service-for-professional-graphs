@@ -1,0 +1,67 @@
+{
+  "items": [
+    {
+      "id": "demo-junior-1",
+      "name": "Junior ML-инженер",
+      "employer": {"name": "Demo Lab A"},
+      "area": {"name": "Москва"},
+      "description": "<p>Можно без опыта, работа под руководством наставника.</p><p>Необходимо знать Python, SQL и Git. Задачи: классификация, регрессия и прогнозирование. Используем линейные модели, деревья решений и градиентный бустинг.</p>"
+    },
+    {
+      "id": "demo-junior-2",
+      "name": "Стажёр по машинному обучению",
+      "employer": {"name": "Demo Lab B"},
+      "area": {"name": "Санкт-Петербург"},
+      "description": "Без опыта. Требуется Python и SQL, Git будет плюсом. Учебные задачи включают классификацию, регрессию, прогнозирование, линейные модели, деревья решений и GBDT."
+    },
+    {
+      "id": "demo-junior-3",
+      "name": "Junior Data Scientist",
+      "employer": {"name": "Demo Lab C"},
+      "area": {"name": "Казань"},
+      "description": "До 1 года опыта. Обязательно: Python, SQL, Git. Классификация, регрессия, forecasting. Линейная модель, дерево решений и gradient boosting."
+    },
+    {
+      "id": "demo-middle-1",
+      "name": "Middle ML Engineer",
+      "employer": {"name": "Demo Product A"},
+      "area": {"name": "Москва"},
+      "description": "Опыт от 2 лет. Самостоятельно решать задачи классификации, регрессии и прогнозирования. Необходимо применять линейные модели, деревья решений и градиентный бустинг. Стек: Python, SQL, Git. Обязанности: разработка и внедрение ML-моделей."
+    },
+    {
+      "id": "demo-middle-2",
+      "name": "ML-инженер",
+      "employer": {"name": "Demo Product B"},
+      "area": {"name": "Новосибирск"},
+      "description": "Опыт 3 года. Требуется Python, SQL и Git. Классификация, regression, forecasting. Желательно знать linear models, decision trees и GBDT."
+    },
+    {
+      "id": "demo-middle-3",
+      "name": "Middle Data Scientist",
+      "employer": {"name": "Demo Product C"},
+      "area": {"name": "Екатеринбург"},
+      "description": "2-4 года опыта. Классификация, регрессия, прогнозирование. Линейные модели, деревья решений, градиентный бустинг. Обязательно уверенное владение Python, SQL и Git."
+    },
+    {
+      "id": "demo-senior-1",
+      "name": "Senior ML Engineer",
+      "employer": {"name": "Demo Platform A"},
+      "area": {"name": "Москва"},
+      "description": "Опыт от 5 лет, архитектура и наставничество. Классификация, регрессия, прогнозирование. Линейные модели, деревья решений, градиентный бустинг. Необходимо знать Python, SQL и Git."
+    },
+    {
+      "id": "demo-senior-2",
+      "name": "Ведущий специалист по машинному обучению",
+      "employer": {"name": "Demo Platform B"},
+      "area": {"name": "Удалённо"},
+      "description": "5+ лет опыта и руководство командой. Требуется Python, SQL, Git. Задачи: classification, regression, forecasting. Методы: linear models, decision trees, gradient boosting."
+    },
+    {
+      "id": "demo-senior-3",
+      "name": "Lead Data Scientist",
+      "employer": {"name": "Demo Platform C"},
+      "area": {"name": "Москва"},
+      "description": "Архитектура ML-систем и наставничество. Обязательно: Python, SQL, Git, классификация, регрессия, прогнозирование, линейные модели, деревья решений и GBDT."
+    }
+  ]
+}

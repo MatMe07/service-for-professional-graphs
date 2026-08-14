@@ -1,0 +1,6 @@
+{
+  "version": "0.1.0-demo",
+  "status": "Aliases are currently embedded in canonical_nodes.json. This file is reserved for migration to the full contract.",
+  "aliases": {}
+}
+

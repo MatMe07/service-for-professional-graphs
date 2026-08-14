@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/profession_config.schema.json",
+  "title": "Profession graph run configuration",
+  "type": "object",
+  "required": ["profession", "grades", "source", "dictionaries"],
+  "properties": {
+    "profession": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"},
+        "aliases": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "grades": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"enum": ["junior", "middle", "senior"]}
+    },
+    "source": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["file", "hh"]},
+        "path": {"type": "string"},
+        "queries": {"type": "array", "items": {"type": "string"}},
+        "areas": {"type": "array", "items": {"type": "string"}},
+        "period_days": {"type": "integer", "minimum": 1},
+        "per_page": {"type": "integer", "minimum": 1, "maximum": 100},
+        "max_pages": {"type": "integer", "minimum": 1},
+        "user_agent": {"type": "string"},
+        "token_env": {"type": "string"},
+        "include_inactive": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    },
+    "dictionaries": {
+      "type": "object",
+      "required": ["nodes"],
+      "properties": {"nodes": {"type": "string"}},
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "object",
+      "required": ["phrases", "splits"],
+      "properties": {
+        "phrases": {"type": "string"},
+        "splits": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "graph": {"type": "object"},
+    "grade_rules": {"type": "object"},
+    "scoring": {"type": "object"},
+    "analysis": {"type": "object"}
+  },
+  "additionalProperties": false
+}

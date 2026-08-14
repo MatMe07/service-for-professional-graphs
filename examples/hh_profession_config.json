@@ -1,0 +1,59 @@
+{
+  "profession": {
+    "name": "ML-инженер",
+    "slug": "machine_learning_engineer",
+    "aliases": ["Machine Learning Engineer", "ML Engineer"]
+  },
+  "grades": ["junior", "middle", "senior"],
+  "source": {
+    "type": "hh",
+    "host": "hh.ru",
+    "queries": ["ML инженер", "Machine Learning Engineer"],
+    "areas": ["1", "2"],
+    "period_days": 30,
+    "per_page": 20,
+    "max_pages": 1,
+    "retries": 3,
+    "timeout_seconds": 30,
+    "user_agent": "ProfessionalGraphService/0.4 (replace-with-project-email@example.com)",
+    "token_env": "HH_API_TOKEN",
+    "include_inactive": false
+  },
+  "dictionaries": {
+    "nodes": "../dictionaries/canonical_nodes.json"
+  },
+  "rules": {
+    "phrases": "../rules/phrase_rules.json",
+    "splits": "../rules/split_rules.json"
+  },
+  "graph": {
+    "min_children": 3,
+    "min_count": 1
+  },
+  "grade_rules": {
+    "conflict_policy": "keep_best",
+    "signals": {}
+  },
+  "scoring": {
+    "required": 1.0,
+    "preferred": 0.75,
+    "optional": 0.5,
+    "unknown": 0.6,
+    "negated": 0.0,
+    "section_weights": {
+      "requirements": 1.0,
+      "responsibilities": 0.9,
+      "advantages": 0.7,
+      "conditions": 0.25,
+      "company": 0.0,
+      "unknown": 0.6
+    },
+    "max_employer_share": 0.4
+  },
+  "analysis": {
+    "duplicate_title_threshold": 0.88,
+    "duplicate_text_threshold": 0.82,
+    "unknown_min_vacancies": 2,
+    "unknown_limit": 50
+  }
+}

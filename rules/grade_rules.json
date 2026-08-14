@@ -1,0 +1,6 @@
+{
+  "version": "0.1.0-temporary",
+  "conflict_policy": "keep_best",
+  "status": "Temporary rules duplicated in example config for traceability."
+}
+
