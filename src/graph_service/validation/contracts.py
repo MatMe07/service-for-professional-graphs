@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import hashlib
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
@@ -79,6 +80,7 @@ def validate_product_layers(
     for graph in graphs.values():
         all_nodes.update(collect_leaf_names(graph))
     image_nodes = image_dictionary.get("nodes", {})
+    image_digests: dict[str, list[str]] = {}
     for name in sorted(all_nodes):
         if name not in image_nodes:
             issues.append(ValidationIssue("error", name, "Нода отсутствует в image_dictionary.json."))
@@ -91,12 +93,23 @@ def validate_product_layers(
                 issues.append(ValidationIssue("error", name, "SVG-файл не найден."))
             else:
                 issues.extend(_validate_svg(name, image_path))
+                digest = hashlib.sha256(image_path.read_bytes()).hexdigest()
+                image_digests.setdefault(digest, []).append(name)
         if name not in course_dictionary:
             issues.append(ValidationIssue("error", name, "Нода отсутствует в course_dictionary.json."))
         elif not isinstance(course_dictionary[name], list):
             issues.append(ValidationIssue("error", name, "Учебные материалы должны быть списком URL."))
         elif not course_dictionary[name]:
             issues.append(ValidationIssue("warning", name, "Список учебных материалов пока пуст."))
+    for names in image_digests.values():
+        if len(names) > 1:
+            issues.append(
+                ValidationIssue(
+                    "warning",
+                    ", ".join(sorted(names)),
+                    "Один и тот же SVG-файл используется для разных нод; требуется ручная проверка.",
+                )
+            )
     return issues
 
 

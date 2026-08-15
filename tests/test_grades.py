@@ -43,6 +43,33 @@ class GradeTests(unittest.TestCase):
         self.assertEqual(result.grade, "middle")
         self.assertEqual(result.resolution, "default_grade_no_signals")
 
+    def test_structured_hh_experience_is_used(self) -> None:
+        vacancy = Vacancy("7", "ML Engineer", "Работа с моделями", experience_id="between3And6")
+        result = decide_grade(vacancy, {"mode": "experience", "junior_max_years": 1, "middle_max_years": 6})
+        self.assertEqual(result.grade, "middle")
+        self.assertIn("experience_years:6", result.signals["middle"])
+
+    def test_salary_thresholds_are_configurable(self) -> None:
+        vacancy = Vacancy(
+            "8",
+            "ML Engineer",
+            "Работа с моделями",
+            salary_from=280000,
+            salary_to=320000,
+            salary_currency="RUR",
+        )
+        result = decide_grade(
+            vacancy,
+            {
+                "mode": "salary",
+                "salary_currency": "RUR",
+                "junior_max_salary": 120000,
+                "middle_max_salary": 250000,
+            },
+        )
+        self.assertEqual(result.grade, "senior")
+        self.assertIn("salary:300000:RUR", result.signals["senior"])
+
 
 if __name__ == "__main__":
     unittest.main()

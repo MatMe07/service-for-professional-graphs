@@ -54,9 +54,65 @@
       },
       "additionalProperties": false
     },
-    "graph": {"type": "object"},
-    "grade_rules": {"type": "object"},
-    "scoring": {"type": "object"},
+    "graph": {
+      "type": "object",
+      "properties": {
+        "min_children": {"type": "integer", "minimum": 1},
+        "min_count": {"type": "integer", "minimum": 1, "maximum": 100},
+        "target_depth": {"type": "integer", "minimum": 2, "maximum": 6},
+        "max_depth": {"type": "integer", "minimum": 2, "maximum": 6}
+      },
+      "additionalProperties": true
+    },
+    "grade_rules": {
+      "type": "object",
+      "properties": {
+        "mode": {"enum": ["signals", "experience", "salary", "experience_then_salary", "salary_then_experience", "combined"]},
+        "conflict_policy": {"enum": ["keep_best", "exclude"]},
+        "junior_max_years": {"type": "integer", "minimum": 0},
+        "middle_max_years": {"type": "integer", "minimum": 1},
+        "salary_currency": {"type": "string", "minLength": 3},
+        "junior_max_salary": {"type": "number", "exclusiveMinimum": 0},
+        "middle_max_salary": {"type": "number", "exclusiveMinimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "scoring": {
+      "type": "object",
+      "properties": {
+        "mode": {"enum": ["prevalence", "weighted_legacy"]}
+      },
+      "additionalProperties": true
+    },
+    "learning": {
+      "type": "object",
+      "properties": {
+        "catalog": {"type": "string"},
+        "max_per_node": {"type": "integer", "minimum": 1},
+        "check_links": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "object",
+      "properties": {
+        "template_version": {"type": "string"},
+        "known_icons": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "ai": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "provider": {"type": ["string", "null"]},
+        "model": {"type": ["string", "null"]},
+        "base_url": {"type": ["string", "null"]},
+        "api_key_env": {"type": "string"},
+        "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 180}
+      },
+      "additionalProperties": false
+    },
     "analysis": {"type": "object"}
   },
   "additionalProperties": false

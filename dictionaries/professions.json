@@ -1,0 +1,102 @@
+{
+  "version": "1.0.0",
+  "description": "Настраиваемый стартовый каталог IT-профессий. Порядок можно менять без правок Python-кода.",
+  "defaults": {
+    "areas": ["113"],
+    "period_days": 30,
+    "per_page": 100,
+    "max_pages": 1
+  },
+  "professions": [
+    {
+      "name": "Python-разработчик",
+      "slug": "python_developer",
+      "aliases": ["Python Developer", "Python-программист"],
+      "queries": ["Python разработчик", "Python Developer"]
+    },
+    {
+      "name": "Java-разработчик",
+      "slug": "java_developer",
+      "aliases": ["Java Developer", "Java-программист"],
+      "queries": ["Java разработчик", "Java Developer"]
+    },
+    {
+      "name": "Frontend-разработчик",
+      "slug": "frontend_developer",
+      "aliases": ["Frontend Developer", "Фронтенд-разработчик"],
+      "queries": ["Frontend разработчик", "Frontend Developer"]
+    },
+    {
+      "name": "Fullstack-разработчик",
+      "slug": "fullstack_developer",
+      "aliases": ["Full Stack Developer", "Fullstack Developer"],
+      "queries": ["Fullstack разработчик", "Full Stack Developer"]
+    },
+    {
+      "name": ".NET-разработчик",
+      "slug": "dotnet_developer",
+      "aliases": ["C# Developer", ".NET Developer"],
+      "queries": ["C# разработчик", ".NET Developer"]
+    },
+    {
+      "name": "C++-разработчик",
+      "slug": "cpp_developer",
+      "aliases": ["C++ Developer", "C++-программист"],
+      "queries": ["C++ разработчик", "C++ Developer"]
+    },
+    {
+      "name": "Мобильный разработчик",
+      "slug": "mobile_developer",
+      "aliases": ["Mobile Developer", "Android/iOS Developer"],
+      "queries": ["мобильный разработчик", "Android разработчик", "iOS разработчик"]
+    },
+    {
+      "name": "DevOps-инженер",
+      "slug": "devops_engineer",
+      "aliases": ["DevOps Engineer", "Инженер DevOps"],
+      "queries": ["DevOps инженер", "DevOps Engineer"]
+    },
+    {
+      "name": "QA-инженер",
+      "slug": "qa_engineer",
+      "aliases": ["QA Engineer", "Инженер по тестированию"],
+      "queries": ["QA инженер", "инженер по тестированию"]
+    },
+    {
+      "name": "Системный аналитик",
+      "slug": "system_analyst",
+      "aliases": ["System Analyst", "IT-системный аналитик"],
+      "queries": ["системный аналитик", "System Analyst"]
+    },
+    {
+      "name": "Бизнес-аналитик",
+      "slug": "business_analyst",
+      "aliases": ["Business Analyst", "IT-бизнес-аналитик"],
+      "queries": ["бизнес аналитик IT", "Business Analyst IT"]
+    },
+    {
+      "name": "Аналитик данных",
+      "slug": "data_analyst",
+      "aliases": ["Data Analyst", "BI-аналитик"],
+      "queries": ["аналитик данных", "Data Analyst"]
+    },
+    {
+      "name": "Инженер данных",
+      "slug": "data_engineer",
+      "aliases": ["Data Engineer", "Инженер по данным"],
+      "queries": ["Data Engineer", "инженер данных"]
+    },
+    {
+      "name": "Data Scientist",
+      "slug": "data_scientist",
+      "aliases": ["Специалист по Data Science", "Исследователь данных"],
+      "queries": ["Data Scientist", "специалист Data Science"]
+    },
+    {
+      "name": "ML-инженер",
+      "slug": "machine_learning_engineer",
+      "aliases": ["Machine Learning Engineer", "ML Engineer"],
+      "queries": ["ML инженер", "Machine Learning Engineer"]
+    }
+  ]
+}

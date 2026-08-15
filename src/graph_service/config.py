@@ -28,7 +28,11 @@ class AppConfig:
     scoring: dict[str, Any]
     grade_rules: dict[str, Any]
     analysis: dict[str, Any]
+    learning: dict[str, Any]
+    assets: dict[str, Any]
+    ai: dict[str, Any]
     nodes_path: Path
+    learning_catalog_path: Path | None
     phrase_rules_path: Path | None
     split_rules_path: Path | None
 
@@ -96,6 +100,10 @@ def load_config(path: str | Path) -> AppConfig:
     graph = {"min_children": 3, "min_count": 1, **data.get("graph", {})}
     if int(graph["min_children"]) < 1:
         raise ConfigError("graph.min_children должен быть не меньше 1.")
+    target_depth = int(graph.get("target_depth", 4))
+    max_depth = int(graph.get("max_depth", 6))
+    if not 2 <= target_depth <= 6 or not target_depth <= max_depth <= 6:
+        raise ConfigError("graph.target_depth и graph.max_depth должны задавать глубину от 2 до 6.")
 
     user_scoring = data.get("scoring", {})
     default_section_weights = {
@@ -107,6 +115,7 @@ def load_config(path: str | Path) -> AppConfig:
         "unknown": 0.6,
     }
     scoring = {
+        "mode": "prevalence",
         "required": 1.0,
         "preferred": 0.75,
         "optional": 0.5,
@@ -128,12 +137,14 @@ def load_config(path: str | Path) -> AppConfig:
     for key, value in scoring["section_weights"].items():
         if not 0 <= float(value) <= 1:
             raise ConfigError(f"scoring.section_weights.{key} должен быть от 0 до 1.")
+    if scoring["mode"] not in {"prevalence", "weighted_legacy"}:
+        raise ConfigError("scoring.mode должен быть prevalence или weighted_legacy.")
     grade_rules = data.get("grade_rules", {})
     if not isinstance(grade_rules, dict):
         raise ConfigError("grade_rules должен быть объектом.")
     if grade_rules.get("conflict_policy", "keep_best") not in {"keep_best", "exclude"}:
         raise ConfigError("grade_rules.conflict_policy должен быть keep_best или exclude.")
-    for key in ("title", "text", "experience", "conflict_score_margin", "conflict_min_score"):
+    for key in ("title", "text", "experience", "salary", "conflict_score_margin", "conflict_min_score"):
         if key in grade_rules and int(grade_rules[key]) < 0:
             raise ConfigError(f"grade_rules.{key} не может быть отрицательным.")
     junior_max_years = int(grade_rules.get("junior_max_years", 1))
@@ -142,6 +153,20 @@ def load_config(path: str | Path) -> AppConfig:
         raise ConfigError("Границы опыта в grade_rules заданы некорректно.")
     if grade_rules.get("default_grade", "middle") not in SUPPORTED_GRADES:
         raise ConfigError("grade_rules.default_grade должен быть junior, middle или senior.")
+    grade_mode = grade_rules.get("mode", "experience_then_salary")
+    if grade_mode not in {
+        "signals",
+        "experience",
+        "salary",
+        "experience_then_salary",
+        "salary_then_experience",
+        "combined",
+    }:
+        raise ConfigError("Некорректный grade_rules.mode.")
+    junior_max_salary = float(grade_rules.get("junior_max_salary", 120000))
+    middle_max_salary = float(grade_rules.get("middle_max_salary", 250000))
+    if junior_max_salary <= 0 or middle_max_salary <= junior_max_salary:
+        raise ConfigError("Границы зарплаты в grade_rules заданы некорректно.")
     analysis = {
         "duplicate_title_threshold": 0.88,
         "duplicate_text_threshold": 0.82,
@@ -161,6 +186,36 @@ def load_config(path: str | Path) -> AppConfig:
     if int(analysis["boilerplate_min_chars"]) < 20:
         raise ConfigError("analysis.boilerplate_min_chars должен быть не меньше 20.")
 
+    learning = {"max_per_node": 4, "check_links": False, **data.get("learning", {})}
+    if int(learning["max_per_node"]) < 1:
+        raise ConfigError("learning.max_per_node должен быть положительным числом.")
+    catalog_value = learning.get("catalog")
+    learning_catalog_path = _resolve(config_path.parent, str(catalog_value)) if catalog_value else None
+    if learning_catalog_path is not None and not learning_catalog_path.is_file():
+        raise ConfigError(f"Каталог учебных материалов не найден: {learning_catalog_path}")
+
+    assets = {"template_version": "0.2", "known_icons": {}, **data.get("assets", {})}
+    if not isinstance(assets.get("known_icons"), dict):
+        raise ConfigError("assets.known_icons должен быть объектом.")
+
+    ai = {
+        "enabled": False,
+        "provider": None,
+        "model": None,
+        "base_url": None,
+        "api_key_env": "PROFESSIONAL_GRAPHS_AI_KEY",
+        "timeout_seconds": 45,
+        **data.get("ai", {}),
+    }
+    if not isinstance(ai["enabled"], bool):
+        raise ConfigError("ai.enabled должен быть true или false.")
+    if ai["enabled"] and ai.get("provider") not in {"deepseek", "gemini", "openai", "compatible"}:
+        raise ConfigError("Для включённого AI укажите provider: deepseek, gemini, openai или compatible.")
+    if ai["enabled"] and not str(ai.get("model") or "").strip():
+        raise ConfigError("Для включённого AI укажите ai.model.")
+    if not 1 <= int(ai["timeout_seconds"]) <= 180:
+        raise ConfigError("ai.timeout_seconds должен быть от 1 до 180.")
+
     return AppConfig(
         path=config_path,
         profession_name=name,
@@ -171,7 +226,11 @@ def load_config(path: str | Path) -> AppConfig:
         scoring=scoring,
         grade_rules=grade_rules,
         analysis=analysis,
+        learning=learning,
+        assets=assets,
+        ai=ai,
         nodes_path=nodes_path,
+        learning_catalog_path=learning_catalog_path,
         phrase_rules_path=phrase_rules_path,
         split_rules_path=split_rules_path,
     )

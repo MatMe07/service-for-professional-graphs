@@ -1,17 +1,22 @@
 {
-  "version": "0.2.0-temporary",
+  "version": "0.3.0",
   "conflict_policy": "keep_best",
+  "mode": "experience_then_salary",
   "title": 5,
   "text": 1,
   "experience": 3,
+  "salary": 3,
   "conflict_score_margin": 2,
   "conflict_min_score": 3,
   "junior_max_years": 1,
   "middle_max_years": 4,
+  "salary_currency": "RUR",
+  "junior_max_salary": 120000,
+  "middle_max_salary": 250000,
   "default_grade": "middle",
   "subgrades": {
     "intern_maps_to": "junior",
     "lead_maps_to": "senior"
   },
-  "status": "Transparent working rules; thresholds and conflict policy await curator approval."
+  "status": "Experience and salary thresholds are configurable; current values are documented defaults."
 }

@@ -41,6 +41,21 @@ def _vacancy_from_payload(payload: Any, source: str, default_query_id: str = "")
     query_ids = tuple(sorted({str(value) for value in query_values if str(value).strip()}))
     if not query_ids and default_query_id:
         query_ids = (default_query_id,)
+    experience_value = payload.get("experience", "")
+    experience_id = (
+        str(experience_value.get("id", "")) if isinstance(experience_value, dict) else str(experience_value or "")
+    )
+    salary_value = payload.get("salary")
+    salary = salary_value if isinstance(salary_value, dict) else {}
+
+    def salary_number(value: Any) -> float | None:
+        if value in {None, ""}:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     return Vacancy(
         vacancy_id=vacancy_id,
         name=str(payload.get("name") or payload.get("title") or "").strip(),
@@ -52,6 +67,11 @@ def _vacancy_from_payload(payload: Any, source: str, default_query_id: str = "")
         source=source,
         status=str(payload.get("status") or ("archived" if payload.get("archived") else "active")),
         query_ids=query_ids,
+        experience_id=experience_id.strip(),
+        salary_from=salary_number(salary.get("from")),
+        salary_to=salary_number(salary.get("to")),
+        salary_currency=str(salary.get("currency") or "").strip(),
+        salary_gross=salary.get("gross") if isinstance(salary.get("gross"), bool) else None,
         raw=payload,
     )
 

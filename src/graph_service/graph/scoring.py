@@ -23,6 +23,7 @@ def calculate_counts(
     evidence: list[Evidence],
     coefficients: dict[str, Any],
 ) -> tuple[dict[Grade, dict[str, int]], list[dict[str, Any]]]:
+    mode = str(coefficients.get("mode", "prevalence"))
     grade_totals: dict[Grade, int] = {"junior": 0, "middle": 0, "senior": 0}
     vacancy_map = {vacancy.vacancy_id: vacancy for vacancy in vacancies}
     for vacancy in vacancies:
@@ -43,11 +44,17 @@ def calculate_counts(
         for item in items:
             vacancy_items[item.vacancy_id].append(item)
         vacancy_weights: dict[str, float] = {}
+        requiredness_strength = {"required": 1.0, "preferred": 0.75, "optional": 0.5, "unknown": 0.5}
         for vacancy_id, vacancy_evidence in vacancy_items.items():
+            positive_evidence = [
+                item
+                for item in vacancy_evidence
+                if item.requiredness != "negated" and item.section != "company" and item.exclusion_reason is None
+            ]
             weights = [
                 float(coefficients.get(item.requiredness, 0.6))
                 * float(section_weights.get(item.section, section_weights["unknown"]))
-                for item in vacancy_evidence
+                for item in positive_evidence
             ]
             strongest = max(weights, default=0.0)
             if strongest > 0:
@@ -60,16 +67,36 @@ def calculate_counts(
         raw_weighted_sum = sum(employer_weights.values())
         employer_cap = max(1.0, total * float(coefficients.get("max_employer_share", 0.4)))
         weighted_sum = sum(min(weight, employer_cap) for weight in employer_weights.values())
-        if weighted_sum <= 0:
+        if not vacancy_weights:
             continue
         prevalence = len(vacancy_weights) / total
         weighted_prevalence = weighted_sum / total
-        count = max(1, min(100, round(weighted_prevalence * 100)))
+        if mode == "weighted_legacy":
+            count = max(1, min(100, round(weighted_prevalence * 100)))
+            formula = "round(employer_capped_weighted_sum / grade_vacancies * 100)"
+        else:
+            count = max(1, min(100, round(prevalence * 100)))
+            formula = "round(unique_vacancies_with_skill / grade_vacancies * 100)"
         counts[grade][node_name] = count
         dates = sorted(
             vacancy_map[vacancy_id].published_at
             for vacancy_id in vacancy_weights
             if vacancy_map[vacancy_id].published_at
+        )
+        requiredness_by_vacancy = []
+        strong_section_vacancies = 0
+        for vacancy_evidence in vacancy_items.values():
+            positive = [item for item in vacancy_evidence if item.requiredness != "negated" and item.section != "company"]
+            if not positive:
+                continue
+            requiredness_by_vacancy.append(
+                max(requiredness_strength.get(item.requiredness, 0.5) for item in positive)
+            )
+            if any(item.section in {"requirements", "responsibilities"} for item in positive):
+                strong_section_vacancies += 1
+        largest_employer_share = max(
+            (sum(1 for vacancy_id in vacancy_weights if (normalize_text(vacancy_map[vacancy_id].employer) or f"unknown:{vacancy_id}") == employer) / len(vacancy_weights) for employer in employer_weights),
+            default=0.0,
         )
         components.append(
             {
@@ -80,15 +107,22 @@ def calculate_counts(
                 "evidence_mentions": len(items),
                 "negated_mentions": sum(item.requiredness == "negated" for item in items),
                 "prevalence": round(prevalence, 4),
+                "criticality": round(sum(requiredness_by_vacancy) / len(requiredness_by_vacancy), 4),
+                "grade_relevance": 1.0,
+                "evidence_confidence": round(strong_section_vacancies / len(vacancy_weights), 4),
                 "weighted_prevalence": round(weighted_prevalence, 4),
                 "raw_weighted_sum": round(raw_weighted_sum, 4),
                 "employer_capped_weighted_sum": round(weighted_sum, 4),
                 "employer_cap": round(employer_cap, 4),
                 "employers": len(employer_weights),
+                "largest_employer_share": round(largest_employer_share, 4),
+                "employer_share_warning": largest_employer_share > float(coefficients.get("max_employer_share", 0.4)),
                 "first_published_at": dates[0] if dates else None,
                 "last_published_at": dates[-1] if dates else None,
                 "count": count,
-                "formula_status": "TEMPORARY: coefficients await curator approval",
+                "mode": mode,
+                "formula": formula,
+                "formula_status": "APPROVED_BY_CURATOR" if mode == "prevalence" else "LEGACY_COMPATIBILITY_MODE",
             }
         )
     return counts, components

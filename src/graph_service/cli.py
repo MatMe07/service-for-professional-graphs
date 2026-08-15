@@ -7,13 +7,16 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .ai import AIError, suggest_dictionary_candidates
 from .collectors import HHCollector
 from .collectors.hh import HHCollectorError
 from .config import ConfigError, load_config, load_node_definitions
 from .extraction import ProfessionalPhraseExtractor
 from .pipeline import PipelineError, run_pipeline
+from .professions import build_profession_config, load_profession_catalog
 from .storage import write_json
 from .validation import validate_run_directory
+from .webapp import serve_local_app
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -35,6 +38,23 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("--limit", type=int, default=5, help="Не больше 20 вакансий; по умолчанию 5.")
     check_run = subparsers.add_parser("check-run", help="Проверить целостность готовой папки запуска.")
     check_run.add_argument("--run-dir", required=True, help="Путь к data/runs/<run_id>.")
+    professions = subparsers.add_parser("list-professions", help="Показать стартовый каталог IT-профессий.")
+    professions.add_argument("--catalog", default="dictionaries/professions.json", help="Путь к каталогу профессий.")
+    professions.add_argument("--limit", type=int, default=15, help="Сколько профессий вывести.")
+    init_config = subparsers.add_parser("init-config", help="Создать HH-конфигурацию для профессии из каталога.")
+    init_config.add_argument("--catalog", default="dictionaries/professions.json", help="Путь к каталогу профессий.")
+    init_config.add_argument("--profession", required=True, help="Slug профессии из list-professions.")
+    init_config.add_argument("--output", required=True, help="Путь нового profession_config.json.")
+    init_config.add_argument("--force", action="store_true", help="Разрешить перезапись существующего файла.")
+    serve = subparsers.add_parser("serve", help="Запустить локальную веб-страницу управления.")
+    serve.add_argument("--project-root", default=".", help="Корень проекта.")
+    serve.add_argument("--host", default="127.0.0.1", help="По умолчанию доступ только с этого компьютера.")
+    serve.add_argument("--port", type=int, default=8765, help="Порт локального сервера.")
+    serve.add_argument("--allow-network", action="store_true", help="Явно разрешить привязку не к localhost.")
+    ai_suggest = subparsers.add_parser("ai-suggest", help="Предложить новые ноды по unclassified.json без автодобавления.")
+    ai_suggest.add_argument("--config", required=True, help="Конфигурация с разделом ai.")
+    ai_suggest.add_argument("--run-dir", required=True, help="Папка запуска с unclassified.json.")
+    ai_suggest.add_argument("--output", help="Куда сохранить AI-кандидатов; по умолчанию внутри запуска.")
     return parser
 
 
@@ -147,6 +167,62 @@ def main(argv: list[str] | None = None) -> int:
         result = validate_run_directory(Path(args.run_dir))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["status"] == "ok" else 1
+    if args.command == "list-professions":
+        try:
+            if args.limit < 1:
+                raise ConfigError("--limit должен быть положительным числом.")
+            catalog = load_profession_catalog(args.catalog)
+        except ConfigError as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            return 2
+        print(
+            json.dumps(
+                {
+                    "version": catalog.get("version"),
+                    "total": len(catalog["professions"]),
+                    "items": catalog["professions"][: args.limit],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "init-config":
+        try:
+            catalog_path = Path(args.catalog).resolve()
+            output_path = Path(args.output).resolve()
+            if output_path.exists() and not args.force:
+                raise ConfigError(f"Файл уже существует: {output_path}. Используйте --force для перезаписи.")
+            catalog = load_profession_catalog(catalog_path)
+            project_root = catalog_path.parent.parent
+            generated = build_profession_config(catalog, args.profession, output_path, project_root)
+            write_json(output_path, generated)
+        except ConfigError as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps({"status": "ok", "output": str(output_path)}, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "serve":
+        if args.host not in {"127.0.0.1", "localhost", "::1"} and not args.allow_network:
+            print("Ошибка: внешний адрес требует явного флага --allow-network.", file=sys.stderr)
+            return 2
+        if not 0 <= args.port <= 65535:
+            print("Ошибка: порт должен быть от 0 до 65535.", file=sys.stderr)
+            return 2
+        serve_local_app(Path(args.project_root), host=args.host, port=args.port)
+        return 0
+    if args.command == "ai-suggest":
+        try:
+            config = load_config(Path(args.config))
+            run_dir = Path(args.run_dir).resolve()
+            unclassified_path = run_dir / "unclassified.json"
+            output_path = Path(args.output).resolve() if args.output else run_dir / "ai_candidates.json"
+            result = suggest_dictionary_candidates(config.ai, unclassified_path, output_path)
+        except (ConfigError, AIError) as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps({**result, "output": str(output_path)}, ensure_ascii=False, indent=2))
+        return 0
     parser.error("Неизвестная команда")
     return 2
 

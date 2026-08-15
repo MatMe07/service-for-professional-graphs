@@ -42,11 +42,16 @@ DEFAULT_WEIGHTS = {
     "title": 5,
     "text": 1,
     "experience": 3,
+    "salary": 3,
     "conflict_score_margin": 2,
     "conflict_min_score": 3,
     "junior_max_years": 1,
     "middle_max_years": 4,
     "default_grade": "middle",
+    "mode": "experience_then_salary",
+    "salary_currency": "RUR",
+    "junior_max_salary": 120000,
+    "middle_max_salary": 250000,
 }
 
 INTERN_MARKERS = ("intern", "trainee", "стажер", "стажёр", "стажировка")
@@ -76,17 +81,45 @@ def decide_grade(vacancy: Vacancy, custom_rules: dict[str, Any] | None = None) -
                 scores[grade] += int(weights["text"])
                 signals[grade].append(f"text:{marker}")
 
-    experience = _experience_signal(
+    experience = _structured_experience_signal(
+        vacancy.experience_id,
+        junior_max_years=int(weights["junior_max_years"]),
+        middle_max_years=int(weights["middle_max_years"]),
+    ) or _experience_signal(
         f"{title}\n{text}",
         junior_max_years=int(weights["junior_max_years"]),
         middle_max_years=int(weights["middle_max_years"]),
     )
     experience_grade: Grade | None = None
     experience_years: int | None = None
-    if experience is not None:
+    salary = _salary_signal(
+        vacancy,
+        currency=str(weights["salary_currency"]),
+        junior_max_salary=float(weights["junior_max_salary"]),
+        middle_max_salary=float(weights["middle_max_salary"]),
+    )
+    salary_grade: Grade | None = None
+    salary_value: float | None = None
+    mode = str(weights["mode"])
+    use_experience = experience is not None and mode in {"experience", "experience_then_salary", "combined"}
+    use_salary = salary is not None and mode in {"salary", "salary_then_experience", "combined"}
+    if mode == "experience_then_salary" and experience is None:
+        use_salary = salary is not None
+    if mode == "salary_then_experience" and salary is None:
+        use_experience = experience is not None
+    if use_experience and experience is not None:
         experience_grade, experience_years = experience
         scores[experience_grade] += int(weights["experience"])
         signals[experience_grade].extend(["experience_years", f"experience_years:{experience_years}"])
+    if use_salary and salary is not None:
+        salary_grade, salary_value = salary
+        scores[salary_grade] += int(weights["salary"])
+        signals[salary_grade].extend(
+            [
+                "salary",
+                f"salary:{round(salary_value)}:{vacancy.salary_currency or weights['salary_currency']}",
+            ]
+        )
 
     if not scores:
         default_grade = str(weights["default_grade"])
@@ -110,6 +143,8 @@ def decide_grade(vacancy: Vacancy, custom_rules: dict[str, Any] | None = None) -
         title_scores,
         experience_grade,
         experience_years,
+        salary_grade,
+        salary_value,
         margin=int(weights["conflict_score_margin"]),
         min_score=int(weights["conflict_min_score"]),
     )
@@ -171,6 +206,47 @@ def _experience_signal(text: str, junior_max_years: int, middle_max_years: int) 
     return "senior", years
 
 
+def _structured_experience_signal(
+    experience_id: str,
+    junior_max_years: int,
+    middle_max_years: int,
+) -> tuple[Grade, int] | None:
+    normalized = normalize_text(experience_id).replace("_", "")
+    years_by_id = {
+        "noexperience": 0,
+        "between1and3": 3,
+        "between3and6": 6,
+        "morethan6": 10,
+    }
+    years = years_by_id.get(normalized)
+    if years is None:
+        return None
+    if years <= junior_max_years:
+        return "junior", years
+    if years <= middle_max_years:
+        return "middle", years
+    return "senior", years
+
+
+def _salary_signal(
+    vacancy: Vacancy,
+    currency: str,
+    junior_max_salary: float,
+    middle_max_salary: float,
+) -> tuple[Grade, float] | None:
+    if vacancy.salary_currency and vacancy.salary_currency.upper() != currency.upper():
+        return None
+    values = [value for value in (vacancy.salary_from, vacancy.salary_to) if value is not None and value > 0]
+    if not values:
+        return None
+    salary = sum(values) / len(values)
+    if salary <= junior_max_salary:
+        return "junior", salary
+    if salary <= middle_max_salary:
+        return "middle", salary
+    return "senior", salary
+
+
 def _choose_winner(scores: Counter[Grade], title_scores: Counter[Grade]) -> Grade:
     grade_priority = {"middle": 2, "senior": 1, "junior": 0}
     return max(
@@ -184,6 +260,8 @@ def _conflict_reasons(
     title_scores: Counter[Grade],
     experience_grade: Grade | None,
     experience_years: int | None,
+    salary_grade: Grade | None,
+    salary_value: float | None,
     margin: int,
     min_score: int,
 ) -> list[str]:
@@ -195,6 +273,12 @@ def _conflict_reasons(
         for title_grade in title_grades:
             if title_grade != experience_grade:
                 reasons.append(f"title_{title_grade}_vs_experience_{experience_grade}:{experience_years}")
+    if salary_grade is not None:
+        for title_grade in title_grades:
+            if title_grade != salary_grade:
+                reasons.append(f"title_{title_grade}_vs_salary_{salary_grade}:{round(salary_value or 0)}")
+    if experience_grade is not None and salary_grade is not None and experience_grade != salary_grade:
+        reasons.append(f"experience_{experience_grade}_vs_salary_{salary_grade}")
 
     ranked = sorted(((grade, scores.get(grade, 0)) for grade in DEFAULT_RULES), key=lambda item: -item[1])
     if ranked[1][1] >= min_score and ranked[0][1] - ranked[1][1] <= margin:

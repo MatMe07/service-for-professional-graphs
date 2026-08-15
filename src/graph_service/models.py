@@ -20,6 +20,11 @@ class Vacancy:
     source: str = "file"
     status: str = "active"
     query_ids: tuple[str, ...] = ()
+    experience_id: str = ""
+    salary_from: float | None = None
+    salary_to: float | None = None
+    salary_currency: str = ""
+    salary_gross: bool | None = None
     raw: dict[str, Any] = field(default_factory=dict, compare=False)
 
     def to_dict(self) -> dict[str, Any]:

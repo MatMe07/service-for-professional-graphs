@@ -1,0 +1,395 @@
+{
+  "version": "1.0.0",
+  "resources": [
+    {
+      "node": "Python",
+      "title": "The Python Tutorial",
+      "url": "https://docs.python.org/3/tutorial/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "NumPy",
+      "title": "NumPy Learn",
+      "url": "https://numpy.org/learn/",
+      "provider": "official",
+      "kind": "tutorial_collection",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "pandas",
+      "title": "pandas Getting Started",
+      "url": "https://pandas.pydata.org/docs/getting_started/index.html",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "scikit-learn",
+      "title": "scikit-learn Getting Started",
+      "url": "https://scikit-learn.org/stable/getting_started.html",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "PyTorch",
+      "title": "PyTorch Tutorials",
+      "url": "https://docs.pytorch.org/tutorials/",
+      "provider": "official",
+      "kind": "tutorial_collection",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "TensorFlow",
+      "title": "TensorFlow Tutorials",
+      "url": "https://www.tensorflow.org/tutorials",
+      "provider": "official",
+      "kind": "tutorial_collection",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "Docker",
+      "title": "Docker Get Started",
+      "url": "https://docs.docker.com/get-started/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Kubernetes",
+      "title": "Learn Kubernetes Basics",
+      "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Git",
+      "title": "Pro Git на русском",
+      "url": "https://git-scm.com/book/ru/v2",
+      "provider": "official",
+      "kind": "book",
+      "language": "ru",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "PostgreSQL",
+      "title": "PostgreSQL Tutorial",
+      "url": "https://www.postgresql.org/docs/current/tutorial.html",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "FastAPI",
+      "title": "FastAPI Tutorial",
+      "url": "https://fastapi.tiangolo.com/tutorial/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Apache Airflow",
+      "title": "Apache Airflow Tutorials",
+      "url": "https://airflow.apache.org/docs/apache-airflow/stable/tutorial/",
+      "provider": "official",
+      "kind": "tutorial_collection",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "Java",
+      "title": "Learn Java",
+      "url": "https://dev.java/learn/",
+      "provider": "official",
+      "kind": "tutorial_collection",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "JavaScript",
+      "title": "MDN JavaScript Guide",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+      "provider": "official",
+      "kind": "guide",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "TypeScript",
+      "title": "The TypeScript Handbook",
+      "url": "https://www.typescriptlang.org/docs/handbook/intro.html",
+      "provider": "official",
+      "kind": "handbook",
+      "language": "en",
+      "access": "free",
+      "level": "mixed"
+    },
+    {
+      "node": "C#",
+      "title": "A tour of C#",
+      "url": "https://learn.microsoft.com/en-us/dotnet/csharp/tour-of-csharp/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Go",
+      "title": "Get Started with Go",
+      "url": "https://go.dev/learn/",
+      "provider": "official",
+      "kind": "tutorial_collection",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Kotlin",
+      "title": "Get started with Kotlin",
+      "url": "https://kotlinlang.org/docs/getting-started.html",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Swift",
+      "title": "A Swift Tour",
+      "url": "https://docs.swift.org/swift-book/documentation/the-swift-programming-language/guidedtour/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "PHP",
+      "title": "PHP Getting Started",
+      "url": "https://www.php.net/manual/en/getting-started.php",
+      "provider": "official",
+      "kind": "manual",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "HTML",
+      "title": "MDN Learn HTML",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content",
+      "provider": "official",
+      "kind": "course",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "CSS",
+      "title": "MDN Learn CSS",
+      "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics",
+      "provider": "official",
+      "kind": "course",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "React",
+      "title": "React Quick Start",
+      "url": "https://react.dev/learn",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Vue.js",
+      "title": "Vue.js Tutorial",
+      "url": "https://vuejs.org/tutorial/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Angular",
+      "title": "Learn Angular",
+      "url": "https://angular.dev/tutorials/learn-angular",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Node.js",
+      "title": "Introduction to Node.js",
+      "url": "https://nodejs.org/learn/getting-started/introduction-to-nodejs",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Flask",
+      "title": "Flask Tutorial",
+      "url": "https://flask.palletsprojects.com/en/stable/tutorial/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Spring Boot",
+      "title": "Building an Application with Spring Boot",
+      "url": "https://spring.io/guides/gs/spring-boot/",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Android SDK",
+      "title": "Android Basics with Compose",
+      "url": "https://developer.android.com/courses/android-basics-compose/course",
+      "provider": "official",
+      "kind": "course",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Flutter",
+      "title": "Flutter learning pathway",
+      "url": "https://docs.flutter.dev/learn/pathway",
+      "provider": "official",
+      "kind": "course",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "React Native",
+      "title": "React Native Basics",
+      "url": "https://reactnative.dev/docs/tutorial",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Playwright",
+      "title": "Playwright Introduction",
+      "url": "https://playwright.dev/docs/intro",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "SQL",
+      "title": "PostgreSQL SQL Language Tutorial",
+      "url": "https://www.postgresql.org/docs/current/tutorial-sql.html",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Линейные модели",
+      "title": "scikit-learn: Linear Models",
+      "url": "https://scikit-learn.org/stable/modules/linear_model.html",
+      "provider": "official",
+      "kind": "documentation",
+      "language": "en",
+      "access": "free",
+      "level": "intermediate"
+    },
+    {
+      "node": "Деревья решений",
+      "title": "scikit-learn: Decision Trees",
+      "url": "https://scikit-learn.org/stable/modules/tree.html",
+      "provider": "official",
+      "kind": "documentation",
+      "language": "en",
+      "access": "free",
+      "level": "intermediate"
+    },
+    {
+      "node": "Градиентный бустинг",
+      "title": "scikit-learn: Gradient-boosted trees",
+      "url": "https://scikit-learn.org/stable/modules/ensemble.html#gradient-boosting",
+      "provider": "official",
+      "kind": "documentation",
+      "language": "en",
+      "access": "free",
+      "level": "intermediate"
+    },
+    {
+      "node": "Классификация",
+      "title": "scikit-learn: Supervised learning",
+      "url": "https://scikit-learn.org/stable/supervised_learning.html",
+      "provider": "official",
+      "kind": "guide",
+      "language": "en",
+      "access": "free",
+      "level": "intermediate"
+    },
+    {
+      "node": "Регрессия",
+      "title": "scikit-learn: Supervised learning",
+      "url": "https://scikit-learn.org/stable/supervised_learning.html",
+      "provider": "official",
+      "kind": "guide",
+      "language": "en",
+      "access": "free",
+      "level": "intermediate"
+    },
+    {
+      "node": "Прогнозирование",
+      "title": "statsmodels: Forecasting example",
+      "url": "https://www.statsmodels.org/stable/examples/notebooks/generated/statespace_forecasting.html",
+      "provider": "official",
+      "kind": "tutorial",
+      "language": "en",
+      "access": "free",
+      "level": "intermediate"
+    }
+  ]
+}

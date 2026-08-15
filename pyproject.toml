@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "professional-graph-service"
-version = "0.6.0"
-description = "Deterministic professional graph builder based on vacancies and explicit rules."
+version = "0.7.0"
+description = "Professional graph builder for configurable IT professions based on vacancies and explicit rules."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Proprietary" }

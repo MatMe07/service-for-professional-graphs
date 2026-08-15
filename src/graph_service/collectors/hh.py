@@ -25,10 +25,10 @@ class HHNotFoundError(HHCollectorError):
 
 
 class HHCollector(Collector):
-    """Minimal HH.ru collector using public API endpoints.
+    """Minimal HH.ru collector using the official API endpoints.
 
-    Authentication is optional for public vacancy data. If HH_API_TOKEN is set,
-    it is sent as a Bearer token. CAPTCHA and access errors are never bypassed.
+    The application token is read from HH_API_TOKEN and sent as a Bearer token.
+    CAPTCHA and access errors are never bypassed.
     """
 
     def __init__(self, source_config: dict[str, Any]) -> None:
@@ -40,7 +40,12 @@ class HHCollector(Collector):
         self.per_page = min(int(source_config.get("per_page", 20)), 100)
         self.timeout = float(source_config.get("timeout_seconds", 30))
         self.retries = int(source_config.get("retries", 3))
-        self.user_agent = str(source_config.get("user_agent", "ProfessionalGraphService/0.6 (contact@example.com)"))
+        self.user_agent = str(
+            source_config.get(
+                "user_agent",
+                "ProfessionalGraphs/0.7 (contact@example.com)",
+            )
+        )
         self.user_agent_env = str(source_config.get("user_agent_env", "HH_USER_AGENT"))
         environment_user_agent = os.getenv(self.user_agent_env, "").strip()
         if environment_user_agent:
@@ -69,7 +74,7 @@ class HHCollector(Collector):
         if not self.live_contact_ready:
             raise HHCollectorError(
                 f"Для реального запроса HH укажите контактный HH-User-Agent через {self.user_agent_env}. "
-                "Пример: ProfessionalGraphService/0.6 (project-email@domain.ru)."
+                "Пример: ProfessionalGraphs/0.7 (mlprofessionalgraphs@gmail.com)."
             )
 
     def collect(self) -> CollectionResult:

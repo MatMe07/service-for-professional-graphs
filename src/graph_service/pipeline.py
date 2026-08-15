@@ -206,7 +206,17 @@ def run_pipeline(
                 }
             )
     image_dictionary = build_assets(image_root, nodes, used_names, image_contexts)
-    course_dictionary = build_course_dictionary(course_root, used_names)
+    course_dictionary = build_course_dictionary(
+        course_root,
+        used_names,
+        catalog_path=config.learning_catalog_path,
+        max_per_node=int(config.learning["max_per_node"]),
+        check_links=bool(config.learning["check_links"]),
+    )
+    learning_nodes_with_materials = sum(bool(urls) for urls in course_dictionary.values())
+    learning_nodes_without_materials = sorted(
+        name for name, urls in course_dictionary.items() if not urls
+    )
     product_issues = [
         issue.to_dict()
         for issue in validate_product_layers(
@@ -331,18 +341,26 @@ def run_pipeline(
         "professional_phrase_occurrences": len(all_phrase_occurrences),
         "professional_phrase_candidates": len(phrase_candidates["items"]),
         "output_nodes": len(used_names),
+        "scoring_mode": config.scoring["mode"],
+        "count_formula": "unique vacancies with skill / all vacancies in profession and grade * 100",
+        "grade_mode": config.grade_rules["mode"],
+        "learning": {
+            "nodes_total": len(course_dictionary),
+            "nodes_with_materials": learning_nodes_with_materials,
+            "nodes_without_materials": learning_nodes_without_materials,
+        },
         "graph_issues": graph_issues,
         "product_issues": product_issues,
         "temporary_implementations": [
-            "canonical dictionary structure awaits curator approval",
-            "grade rules and conflict policy",
-            "count formula and coefficients",
-            "template SVG design",
-            "course_dictionary contains empty lists",
+            "canonical dictionary contains an initial 143-node IT core and still awaits curator approval",
+            "grade thresholds and conflict policy remain configurable until curator approval",
+            "SVG uses five deterministic project templates; custom technology icons are postponed",
+            "learning catalog is expanded incrementally for nodes that appear in graphs",
             "probable reposts are reported but not automatically excluded",
             "parallel history writes are not locked",
             "professional phrases remain candidates until curator review",
-            "live HH probe reached the API but anonymous access was rejected; application token is required",
+            "live HH collection waits for the pending application token",
+            "AI candidate suggestions are disabled until a provider and API key are configured",
         ],
     }
     errors = [

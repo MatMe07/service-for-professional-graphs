@@ -15,7 +15,7 @@ class ScoringTests(unittest.TestCase):
         self.assertNotIn("Docker", counts["junior"])
         self.assertEqual(components, [])
 
-    def test_one_employer_is_capped(self) -> None:
+    def test_one_employer_does_not_change_approved_prevalence_count(self) -> None:
         vacancies = [Vacancy(str(index), "Junior", "Docker", employer="Одна компания") for index in range(4)]
         grades = {vacancy.vacancy_id: "junior" for vacancy in vacancies}
         evidence = [
@@ -28,8 +28,10 @@ class ScoringTests(unittest.TestCase):
             evidence,
             {"required": 1.0, "max_employer_share": 0.4},
         )
-        self.assertEqual(counts["junior"]["Docker"], 40)
+        self.assertEqual(counts["junior"]["Docker"], 100)
         self.assertEqual(components[0]["employers"], 1)
+        self.assertTrue(components[0]["employer_share_warning"])
+        self.assertEqual(components[0]["formula_status"], "APPROVED_BY_CURATOR")
 
     def test_company_section_does_not_create_count(self) -> None:
         vacancies = [Vacancy("1", "Middle", "Наша компания использует Python")]
@@ -41,7 +43,7 @@ class ScoringTests(unittest.TestCase):
         self.assertNotIn("Python", counts["middle"])
         self.assertEqual(components, [])
 
-    def test_section_weight_changes_count(self) -> None:
+    def test_section_weight_is_audited_but_does_not_change_prevalence(self) -> None:
         vacancies = [
             Vacancy("1", "Middle", "Python", employer="A"),
             Vacancy("2", "Middle", "Python", employer="B"),
@@ -61,8 +63,20 @@ class ScoringTests(unittest.TestCase):
                 "section_weights": {"requirements": 1.0, "conditions": 0.2},
             },
         )
-        self.assertEqual(counts["middle"]["Python"], 60)
+        self.assertEqual(counts["middle"]["Python"], 100)
         self.assertEqual(components[0]["evidence_mentions"], 2)
+
+    def test_prevalence_is_unique_vacancies_divided_by_grade_total(self) -> None:
+        vacancies = [Vacancy(str(index), "Middle", "") for index in range(10)]
+        grades = {vacancy.vacancy_id: "middle" for vacancy in vacancies}
+        evidence = [
+            Evidence(str(index), "Python", "middle", "Python", 0, 6, "required", "test")
+            for index in range(3)
+        ]
+        counts, components = calculate_counts(vacancies, grades, evidence, {"mode": "prevalence"})
+        self.assertEqual(counts["middle"]["Python"], 30)
+        self.assertEqual(components[0]["unique_vacancies"], 3)
+        self.assertEqual(components[0]["grade_vacancies"], 10)
 
 
 if __name__ == "__main__":
