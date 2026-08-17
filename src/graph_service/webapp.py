@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from .ai import ai_status
+from .collectors import HHCollector
 from .config import ConfigError, load_config
 from .pipeline import PipelineError, run_pipeline
 from .professions import build_profession_config, load_profession_catalog, resolve_profession
@@ -39,7 +40,7 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
     catalog_path = root / "dictionaries" / "professions.json"
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "ProfessionalGraphs/0.7"
+        server_version = "ProfessionalGraphs/0.9"
 
         def do_GET(self) -> None:  # noqa: N802
             path = urlsplit(self.path).path
@@ -82,6 +83,12 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
                 if path == "/api/run/hh":
                     self._run_hh(payload)
                     return
+                if path == "/api/run/hh-public":
+                    self._run_hh_public(payload)
+                    return
+                if path == "/api/run/public-search":
+                    self._run_public_search(payload)
+                    return
                 if path == "/api/run/validate":
                     self._validate_run(payload)
                     return
@@ -118,6 +125,60 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
             profession, _, _ = resolve_profession(catalog, requested)
             config_path = root / "data" / "configs" / f"{profession['slug']}.json"
             generated = build_profession_config(catalog, profession["slug"], config_path, root)
+            write_json(config_path, generated)
+            report = run_pipeline(config_path, runs_root)
+            self._send_json(HTTPStatus.OK, report)
+
+        def _run_hh_public(self, payload: dict[str, Any]) -> None:
+            requested = str(payload.get("profession", "")).strip()
+            supplied_urls = payload.get("urls", [])
+            if isinstance(supplied_urls, str):
+                supplied_urls = supplied_urls.splitlines()
+            if not isinstance(supplied_urls, list):
+                raise ValueError("Ссылки должны быть списком или строками по одной на строку.")
+            urls = list(dict.fromkeys(str(value).strip() for value in supplied_urls if str(value).strip()))
+            catalog = load_profession_catalog(catalog_path)
+            profession, _, _ = resolve_profession(catalog, requested)
+            config_path = root / "data" / "configs" / f"{profession['slug']}_hh_public.json"
+            generated = build_profession_config(catalog, profession["slug"], config_path, root)
+            generated["source"] = {
+                "type": "hh_public_pages",
+                "urls": urls,
+                "contact_email": "mlprofessionalgraphs@gmail.com",
+                "contact_email_env": "HH_CONTACT_EMAIL",
+                "timeout_seconds": 30,
+                "retries": 2,
+                "request_interval_seconds": 1.0,
+            }
+            write_json(config_path, generated)
+            report = run_pipeline(config_path, runs_root)
+            self._send_json(HTTPStatus.OK, report)
+
+        def _run_public_search(self, payload: dict[str, Any]) -> None:
+            requested = str(payload.get("profession", "")).strip()
+            period_days = int(payload.get("period_days", 30))
+            max_pages = int(payload.get("max_pages", 2))
+            if not 1 <= period_days <= 3650:
+                raise ValueError("Период должен быть от 1 до 3650 дней.")
+            if not 1 <= max_pages <= 10:
+                raise ValueError("На странице можно выбрать от 1 до 10 страниц.")
+            catalog = load_profession_catalog(catalog_path)
+            profession, _, _ = resolve_profession(catalog, requested)
+            config_path = root / "data" / "configs" / f"{profession['slug']}_public_search.json"
+            generated = build_profession_config(catalog, profession["slug"], config_path, root)
+            generated["source"] = {
+                "type": "trudvsem",
+                "queries": profession["queries"],
+                "region_codes": [],
+                "period_days": period_days,
+                "per_page": 100,
+                "max_pages": max_pages,
+                "retries": 3,
+                "timeout_seconds": 30,
+                "request_interval_seconds": 0.3,
+                "user_agent": "ProfessionalGraphs/0.9 (mlprofessionalgraphs@gmail.com)",
+                "include_inactive": False,
+            }
             write_json(config_path, generated)
             report = run_pipeline(config_path, runs_root)
             self._send_json(HTTPStatus.OK, report)
@@ -175,11 +236,17 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
 
 def _status(root: Path, runs_root: Path) -> dict[str, Any]:
     config = load_config(root / "examples" / "profession_config.json")
+    configured_hh_contact = False
+    hh_config_path = root / "examples" / "hh_profession_config.json"
+    if hh_config_path.is_file():
+        configured_hh_contact = HHCollector(load_config(hh_config_path).source).live_contact_ready
     return {
         "status": "ok",
         "project_root": str(root),
-        "hh_user_agent_ready": bool(os.getenv("HH_USER_AGENT", "").strip()),
+        "hh_user_agent_ready": configured_hh_contact or bool(os.getenv("HH_USER_AGENT", "").strip()),
         "hh_token_ready": bool(os.getenv("HH_API_TOKEN", "").strip()),
+        "hh_public_pages_ready": True,
+        "public_search_ready": True,
         "ai": ai_status(config.ai),
         "runs": len(_list_runs(runs_root)),
         "storage": "json_files",
@@ -228,8 +295,9 @@ PAGE = r'''<!doctype html>
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
     section { min-width: 0; background: white; border: 1px solid #dbe3ef; border-radius: 16px; padding: 18px; box-shadow: 0 8px 24px rgba(38,55,86,.06); }
     label { display:block; font-weight: 600; margin-bottom: 7px; }
-    select, input, button { width: 100%; box-sizing: border-box; border-radius: 9px; padding: 10px 12px; font: inherit; }
-    select, input { border: 1px solid #b9c5d8; margin-bottom: 10px; background: white; }
+    select, input, textarea, button { width: 100%; box-sizing: border-box; border-radius: 9px; padding: 10px 12px; font: inherit; }
+    select, input, textarea { border: 1px solid #b9c5d8; margin-bottom: 10px; background: white; }
+    textarea { min-height: 116px; resize: vertical; }
     button { border: 0; background: #2457d6; color: white; font-weight: 700; cursor: pointer; margin-top: 6px; }
     button:disabled { cursor: not-allowed; opacity: .48; }
     button.secondary { background: #44546f; } button.warn { background: #a34b13; }
@@ -256,12 +324,28 @@ PAGE = r'''<!doctype html>
       <button class="secondary" onclick="runDemo()">Запустить демо</button>
     </section>
     <section>
-      <h2>3. Настоящий сбор HH</h2>
+      <h2>3. Автосбор без ключа</h2>
+      <p>Ищет вакансии автоматически через открытый API «Работа России». HH подключится после одобрения ключа.</p>
+      <label for="public-period">Период изменений, дней</label>
+      <input id="public-period" type="number" min="1" max="3650" value="30">
+      <label for="public-pages">Страниц по 100 вакансий на каждый запрос</label>
+      <input id="public-pages" type="number" min="1" max="10" value="2">
+      <button onclick="runPublicSearch()">Собрать вакансии автоматически</button>
+    </section>
+    <section>
+      <h2>4. Ручные ссылки HH</h2>
+      <p>Вставьте прямые публичные ссылки на вакансии, по одной на строку. Поиск на сайте программа не обходит. Для полного графа подберите вакансии Junior, Middle и Senior.</p>
+      <label for="hh-public-urls">Ссылки вида https://hh.ru/vacancy/123456</label>
+      <textarea id="hh-public-urls" placeholder="https://hh.ru/vacancy/123456"></textarea>
+      <button onclick="runHHPublic()">Собрать по публичным ссылкам</button>
+    </section>
+    <section>
+      <h2>5. HH через API</h2>
       <p>Станет доступен после одобрения приложения и сохранения токена.</p>
       <button id="hh-button" class="warn" onclick="runHH()">Собрать выбранную профессию</button>
     </section>
     <section>
-      <h2>4. Проверка результата</h2>
+      <h2>6. Проверка результата</h2>
       <p>Проверяет последний запуск, JSON, графы, SVG и связанные файлы.</p>
       <button class="secondary" onclick="validateRun()">Проверить последний запуск</button>
     </section>
@@ -279,8 +363,10 @@ PAGE = r'''<!doctype html>
     async function load() {
       const [status, professions] = await Promise.all([api('/api/status'), fetch('/api/professions').then(r=>r.json())]);
       document.getElementById('status').innerHTML = [
-        `HH контакт: ${status.hh_user_agent_ready ? 'готов' : 'не задан'}`,
+        `HH API-контакт: ${status.hh_user_agent_ready ? 'готов' : 'не задан'}`,
         `HH токен: ${status.hh_token_ready ? 'готов' : 'ожидается'}`,
+        `Автосбор без ключа: готов`,
+        `Ручной HH: готов`,
         `AI: ${status.ai.ready ? 'готов' : 'выключен'}`,
         `Запусков: ${status.runs}`
       ].map(x=>`<span class="pill">${x}</span>`).join('');
@@ -290,6 +376,8 @@ PAGE = r'''<!doctype html>
     const chosen = () => document.getElementById('profession').value;
     const createConfig = () => api('/api/config/create', {profession:chosen()});
     const runDemo = () => api('/api/run/demo', {});
+    const runHHPublic = () => api('/api/run/hh-public', {profession:chosen(), urls:document.getElementById('hh-public-urls').value});
+    const runPublicSearch = () => api('/api/run/public-search', {profession:chosen(), period_days:Number(document.getElementById('public-period').value), max_pages:Number(document.getElementById('public-pages').value)});
     const runHH = () => api('/api/run/hh', {profession:chosen()});
     const validateRun = () => api('/api/run/validate', {});
     load().catch(error => output.textContent = String(error));

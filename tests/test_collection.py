@@ -65,6 +65,22 @@ class HHCollectionTests(unittest.TestCase):
         self.assertEqual(len(result.search_responses), 1)
         self.assertEqual(result.vacancies[0].query_ids, ("hh:q001:area:1",))
 
+    def test_large_period_can_be_split_into_date_windows(self) -> None:
+        collector = FakeHHCollector(
+            {
+                "queries": ["ML Engineer"],
+                "areas": ["1"],
+                "period_days": 5,
+                "date_chunk_days": 2,
+                "max_pages": 1,
+                "per_page": 20,
+            }
+        )
+        result = collector.collect()
+        self.assertEqual(len(result.search_responses), 3)
+        self.assertTrue(all(item["date_from"] and item["date_to"] for item in result.search_responses))
+        self.assertEqual(len(result.vacancies[0].query_ids), 3)
+
     def test_placeholder_contact_is_rejected_for_live_request(self) -> None:
         with patch.dict("os.environ", {"HH_USER_AGENT": ""}):
             collector = HHCollector({"queries": ["ML Engineer"]})

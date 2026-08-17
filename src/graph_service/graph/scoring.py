@@ -119,6 +119,12 @@ def calculate_counts(
                 "employer_share_warning": largest_employer_share > float(coefficients.get("max_employer_share", 0.4)),
                 "first_published_at": dates[0] if dates else None,
                 "last_published_at": dates[-1] if dates else None,
+                "market_status": (
+                    "main"
+                    if prevalence >= float(coefficients.get("main_status_threshold", 0.6))
+                    else "niche"
+                ),
+                "market_status_basis": "single_period_prevalence; growing/declining/obsolete require historical periods",
                 "count": count,
                 "mode": mode,
                 "formula": formula,

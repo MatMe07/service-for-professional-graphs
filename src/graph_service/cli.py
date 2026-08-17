@@ -13,7 +13,7 @@ from .collectors.hh import HHCollectorError
 from .config import ConfigError, load_config, load_node_definitions
 from .extraction import ProfessionalPhraseExtractor
 from .pipeline import PipelineError, run_pipeline
-from .professions import build_profession_config, load_profession_catalog
+from .professions import build_profession_config, load_profession_catalog, resolve_profession
 from .storage import write_json
 from .validation import validate_run_directory
 from .webapp import serve_local_app
@@ -36,6 +36,18 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("--config", required=True, help="Путь к конфигурации с source.type=hh.")
     probe.add_argument("--output", default="data/hh_probe.json", help="Куда сохранить результат проверки.")
     probe.add_argument("--limit", type=int, default=5, help="Не больше 20 вакансий; по умолчанию 5.")
+    public_hh = subparsers.add_parser("hh-public", help="Собрать прямые публичные страницы вакансий HH без токена.")
+    public_hh.add_argument("--profession", required=True, help="Название или slug профессии из каталога.")
+    public_hh.add_argument("--url", action="append", required=True, help="Прямая ссылка https://hh.ru/vacancy/<id>; можно повторять.")
+    public_hh.add_argument("--catalog", default="dictionaries/professions.json", help="Каталог профессий.")
+    public_hh.add_argument("--runs-root", default="data/runs", help="Каталог запусков.")
+    public_search = subparsers.add_parser("public-search", help="Автоматически собрать вакансии без ключа через API «Работа России».")
+    public_search.add_argument("--profession", required=True, help="Название или slug профессии из каталога.")
+    public_search.add_argument("--period-days", type=int, default=30, help="Период изменений, по умолчанию 30 дней.")
+    public_search.add_argument("--max-pages", type=int, default=2, help="Не больше 100 вакансий на страницу.")
+    public_search.add_argument("--region-code", action="append", default=[], help="Необязательный код региона «Работы России».")
+    public_search.add_argument("--catalog", default="dictionaries/professions.json", help="Каталог профессий.")
+    public_search.add_argument("--runs-root", default="data/runs", help="Каталог запусков.")
     check_run = subparsers.add_parser("check-run", help="Проверить целостность готовой папки запуска.")
     check_run.add_argument("--run-dir", required=True, help="Путь к data/runs/<run_id>.")
     professions = subparsers.add_parser("list-professions", help="Показать стартовый каталог IT-профессий.")
@@ -163,6 +175,58 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "hh-public":
+        try:
+            catalog_path = Path(args.catalog).resolve()
+            catalog = load_profession_catalog(catalog_path)
+            profession, _, _ = resolve_profession(catalog, args.profession)
+            project_root = catalog_path.parent.parent
+            config_path = project_root / "data" / "configs" / f"{profession['slug']}_hh_public.json"
+            generated = build_profession_config(catalog, profession["slug"], config_path, project_root)
+            generated["source"] = {
+                "type": "hh_public_pages",
+                "urls": list(dict.fromkeys(args.url)),
+                "contact_email": "mlprofessionalgraphs@gmail.com",
+                "contact_email_env": "HH_CONTACT_EMAIL",
+                "timeout_seconds": 30,
+                "retries": 2,
+                "request_interval_seconds": 1.0,
+            }
+            write_json(config_path, generated)
+            report = run_pipeline(config_path, Path(args.runs_root))
+        except (ConfigError, PipelineError, ValueError) as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report["status"] != "failed" else 1
+    if args.command == "public-search":
+        try:
+            catalog_path = Path(args.catalog).resolve()
+            catalog = load_profession_catalog(catalog_path)
+            profession, _, _ = resolve_profession(catalog, args.profession)
+            project_root = catalog_path.parent.parent
+            config_path = project_root / "data" / "configs" / f"{profession['slug']}_public_search.json"
+            generated = build_profession_config(catalog, profession["slug"], config_path, project_root)
+            generated["source"] = {
+                "type": "trudvsem",
+                "queries": profession["queries"],
+                "region_codes": list(dict.fromkeys(args.region_code)),
+                "period_days": args.period_days,
+                "per_page": 100,
+                "max_pages": args.max_pages,
+                "retries": 3,
+                "timeout_seconds": 30,
+                "request_interval_seconds": 0.3,
+                "user_agent": "ProfessionalGraphs/0.9 (mlprofessionalgraphs@gmail.com)",
+                "include_inactive": False,
+            }
+            write_json(config_path, generated)
+            report = run_pipeline(config_path, Path(args.runs_root))
+        except (ConfigError, PipelineError, ValueError) as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report["status"] != "failed" else 1
     if args.command == "check-run":
         result = validate_run_directory(Path(args.run_dir))
         print(json.dumps(result, ensure_ascii=False, indent=2))

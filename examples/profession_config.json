@@ -21,7 +21,9 @@
     "min_count": 1,
     "target_depth": 4,
     "max_depth": 6,
-    "depth_status": "TEMPORARY: minimal demo hierarchy"
+    "target_leaf_min": 100,
+    "target_leaf_max": 180,
+    "depth_status": "small_demo_corpus"
   },
   "grade_rules": {
     "conflict_policy": "keep_best",

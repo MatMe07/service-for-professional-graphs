@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "resources": [
     {
       "node": "Python",
@@ -390,6 +390,26 @@
       "language": "en",
       "access": "free",
       "level": "intermediate"
+    },
+    {
+      "node": "CI/CD",
+      "title": "GitHub Actions: основы CI/CD",
+      "url": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "provider": "official",
+      "kind": "guide",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "GitHub Actions",
+      "title": "GitHub Actions: основные понятия",
+      "url": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "provider": "official",
+      "kind": "guide",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
     }
   ]
 }

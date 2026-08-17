@@ -17,7 +17,7 @@ class ValidationIssue:
         return asdict(self)
 
 
-def validate_graph(graph: dict[str, Any], min_children: int = 3) -> list[ValidationIssue]:
+def validate_graph(graph: dict[str, Any], min_children: int = 3, max_depth: int = 6) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
     if len(graph) != 1:
         issues.append(ValidationIssue("error", "$", "В графе должен быть ровно один корень профессии."))
@@ -26,11 +26,25 @@ def validate_graph(graph: dict[str, Any], min_children: int = 3) -> list[Validat
     if not isinstance(root_value, dict) or not root_value:
         issues.append(ValidationIssue("error", root_name, "Корень графа не должен быть пустым."))
         return issues
-    _walk(root_value, [root_name], min_children, issues)
+    _walk(root_value, [root_name], min_children, max_depth, issues)
     return issues
 
 
-def _walk(node: dict[str, Any], path: list[str], min_children: int, issues: list[ValidationIssue]) -> None:
+def _walk(
+    node: dict[str, Any],
+    path: list[str],
+    min_children: int,
+    max_depth: int,
+    issues: list[ValidationIssue],
+) -> None:
+    if len(path) - 1 > max_depth:
+        issues.append(
+            ValidationIssue(
+                "error",
+                " > ".join(path),
+                f"Глубина {len(path) - 1} превышает настроенный предел {max_depth}.",
+            )
+        )
     if "count" in node:
         if set(node) != {"count"} or not isinstance(node["count"], int) or not 1 <= node["count"] <= 100:
             issues.append(ValidationIssue("error", " > ".join(path), "Лист должен иметь только целочисленный count от 1 до 100."))
@@ -44,13 +58,21 @@ def _walk(node: dict[str, Any], path: list[str], min_children: int, issues: list
             )
         )
     for name, child in node.items():
+        if not name.strip() or "\n" in name or len(name.split()) > 4:
+            issues.append(
+                ValidationIssue(
+                    "error",
+                    " > ".join([*path, name]),
+                    "Название ноды должно быть коротким: от одного до четырёх слов без переноса строки.",
+                )
+            )
         if name in path:
             issues.append(ValidationIssue("error", " > ".join([*path, name]), "Обнаружено самовложение."))
             continue
         if not isinstance(child, dict):
             issues.append(ValidationIssue("error", " > ".join([*path, name]), "Значение ноды должно быть объектом."))
             continue
-        _walk(child, [*path, name], min_children, issues)
+        _walk(child, [*path, name], min_children, max_depth, issues)
 
 
 def collect_leaf_names(graph: dict[str, Any]) -> set[str]:

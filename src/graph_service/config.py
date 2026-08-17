@@ -94,16 +94,49 @@ def load_config(path: str | Path) -> AppConfig:
 
     source = data.get("source", {})
     source_type = source.get("type", "file")
-    if source_type not in {"file", "hh"}:
-        raise ConfigError("source.type должен быть file или hh.")
+    if source_type not in {"file", "hh", "hh_public_pages", "trudvsem"}:
+        raise ConfigError("source.type должен быть file, hh, hh_public_pages или trudvsem.")
+    if source_type == "hh_public_pages":
+        public_urls = source.get("urls", [])
+        if not isinstance(public_urls, list) or not 1 <= len(public_urls) <= 100:
+            raise ConfigError("Для hh_public_pages укажите от 1 до 100 прямых ссылок в source.urls.")
+        if not 0 <= float(source.get("request_interval_seconds", 1.0)) <= 30:
+            raise ConfigError("source.request_interval_seconds должен быть от 0 до 30.")
+    if source_type == "hh":
+        period_days = int(source.get("period_days", 30))
+        date_chunk_days = int(source.get("date_chunk_days", period_days))
+        if not 1 <= date_chunk_days <= period_days <= 30:
+            raise ConfigError("Для HH должно выполняться 1 <= date_chunk_days <= period_days <= 30.")
+    if source_type == "trudvsem":
+        queries = source.get("queries", [])
+        if not isinstance(queries, list) or not queries:
+            raise ConfigError("Для trudvsem нужен непустой список source.queries.")
+        if not 1 <= int(source.get("period_days", 30)) <= 3650:
+            raise ConfigError("Для trudvsem source.period_days должен быть от 1 до 3650.")
+        if not 1 <= int(source.get("per_page", 100)) <= 100:
+            raise ConfigError("Для trudvsem source.per_page должен быть от 1 до 100.")
+        if not 1 <= int(source.get("max_pages", 2)) <= 100:
+            raise ConfigError("Для trudvsem source.max_pages должен быть от 1 до 100.")
 
-    graph = {"min_children": 3, "min_count": 1, **data.get("graph", {})}
+    graph = {
+        "min_children": 3,
+        "min_count": 1,
+        "target_depth": 4,
+        "max_depth": 6,
+        "target_leaf_min": 100,
+        "target_leaf_max": 180,
+        **data.get("graph", {}),
+    }
     if int(graph["min_children"]) < 1:
         raise ConfigError("graph.min_children должен быть не меньше 1.")
     target_depth = int(graph.get("target_depth", 4))
     max_depth = int(graph.get("max_depth", 6))
     if not 2 <= target_depth <= 6 or not target_depth <= max_depth <= 6:
         raise ConfigError("graph.target_depth и graph.max_depth должны задавать глубину от 2 до 6.")
+    target_leaf_min = int(graph["target_leaf_min"])
+    target_leaf_max = int(graph["target_leaf_max"])
+    if target_leaf_min < 1 or target_leaf_max < target_leaf_min:
+        raise ConfigError("graph.target_leaf_min и graph.target_leaf_max задают некорректный диапазон.")
 
     user_scoring = data.get("scoring", {})
     default_section_weights = {
@@ -122,6 +155,7 @@ def load_config(path: str | Path) -> AppConfig:
         "unknown": 0.6,
         "negated": 0.0,
         "max_employer_share": 0.4,
+        "main_status_threshold": 0.6,
         **user_scoring,
     }
     scoring["section_weights"] = {
@@ -134,6 +168,8 @@ def load_config(path: str | Path) -> AppConfig:
     for key in ("required", "preferred", "optional", "unknown", "negated"):
         if not 0 <= float(scoring[key]) <= 1:
             raise ConfigError(f"scoring.{key} должен быть от 0 до 1.")
+    if not 0 < float(scoring["main_status_threshold"]) <= 1:
+        raise ConfigError("scoring.main_status_threshold должен быть больше 0 и не больше 1.")
     for key, value in scoring["section_weights"].items():
         if not 0 <= float(value) <= 1:
             raise ConfigError(f"scoring.section_weights.{key} должен быть от 0 до 1.")

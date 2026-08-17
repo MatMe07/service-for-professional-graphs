@@ -47,6 +47,24 @@ def _vacancy_from_payload(payload: Any, source: str, default_query_id: str = "")
     )
     salary_value = payload.get("salary")
     salary = salary_value if isinstance(salary_value, dict) else {}
+    description_parts = [str(payload.get("description") or "")]
+    for field, heading in (
+        ("responsibilities", "Обязанности"),
+        ("requirements", "Требования"),
+        ("conditions", "Условия"),
+    ):
+        value = payload.get(field)
+        if value:
+            description_parts.append(f"{heading}:\n{value}")
+    key_skills = payload.get("key_skills", [])
+    if isinstance(key_skills, list):
+        skill_names = [
+            str(item.get("name", "") if isinstance(item, dict) else item).strip()
+            for item in key_skills
+        ]
+        skill_names = [name for name in skill_names if name]
+        if skill_names:
+            description_parts.append("Ключевые навыки:\n" + "\n".join(skill_names))
 
     def salary_number(value: Any) -> float | None:
         if value in {None, ""}:
@@ -59,7 +77,7 @@ def _vacancy_from_payload(payload: Any, source: str, default_query_id: str = "")
     return Vacancy(
         vacancy_id=vacancy_id,
         name=str(payload.get("name") or payload.get("title") or "").strip(),
-        description=str(payload.get("description") or ""),
+        description="\n".join(part for part in description_parts if part),
         employer=employer.strip(),
         area=area.strip(),
         published_at=str(payload.get("published_at") or ""),

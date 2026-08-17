@@ -10,6 +10,7 @@ REQUIRED_ROOT_FILES = (
     "excluded_evidence.json",
     "phrase_evidence.json",
     "phrase_candidates.json",
+    "alignment_ledger.json",
     "boilerplate_report.json",
     "grade_decisions.json",
     "grade_conflicts.json",
@@ -39,6 +40,7 @@ def validate_run_directory(path: str | Path) -> dict[str, Any]:
     required_paths.extend(
         [
             root / "input" / "profession_config.json",
+            root / "input" / "source_queries.json",
             root / "input" / "versions.json",
             root / "output" / "validation_report.json",
         ]

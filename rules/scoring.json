@@ -15,5 +15,6 @@
     "unknown": 0.6
   },
   "max_employer_share": 0.4,
+  "main_status_threshold": 0.6,
   "status": "Approved count formula: unique vacancies with the skill divided by all vacancies of the grade. Other coefficients remain audit-only."
 }

@@ -122,7 +122,19 @@ def clean_html(value: str) -> str:
 
 def normalize_text(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value).lower().replace("ё", "е")
-    normalized = normalized.replace("–", "-").replace("—", "-")
+    normalized = (
+        normalized.replace("–", "-")
+        .replace("—", "-")
+        .replace("−", "-")
+        .replace("‑", "-")
+        .replace("«", '"')
+        .replace("»", '"')
+        .replace("“", '"')
+        .replace("”", '"')
+        .replace("„", '"')
+        .replace("’", "'")
+        .replace("`", "'")
+    )
     return SPACE_RE.sub(" ", normalized)
 
 

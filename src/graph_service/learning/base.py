@@ -36,7 +36,7 @@ def check_resource_url(url: str, timeout: float = 10.0) -> dict[str, Any]:
     request = urllib.request.Request(
         url,
         method="HEAD",
-        headers={"User-Agent": "ProfessionalGraphService/0.7 (learning-link-check)"},
+        headers={"User-Agent": "ProfessionalGraphs/0.9 (learning-link-check)"},
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:

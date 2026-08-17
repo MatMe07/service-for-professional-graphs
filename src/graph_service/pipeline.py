@@ -14,7 +14,7 @@ from .analysis import (
     render_review_html,
 )
 from .assets import build_assets
-from .collectors import FileCollector, HHCollector
+from .collectors import FileCollector, HHCollector, HHPublicPageCollector, TrudvsemCollector
 from .config import AppConfig, load_config, load_node_definitions, read_json
 from .extraction import DictionaryMatcher, ProfessionalPhraseExtractor, build_phrase_candidates, mine_unknown_phrases
 from .graph import build_grade_graphs, calculate_counts, decide_grade
@@ -56,6 +56,16 @@ def run_pipeline(
     history = VacancyHistory(runs_path.parent / "history")
 
     write_json(storage.input_dir / "profession_config.json", read_json(config.path))
+    write_json(
+        storage.input_dir / "source_queries.json",
+        {
+            "source_type": config.source.get("type", "file"),
+            "queries": config.source.get("queries", []),
+            "areas": config.source.get("areas", []),
+            "period_days": config.source.get("period_days"),
+            "public_vacancy_urls": config.source.get("urls", []),
+        },
+    )
     write_json(
         storage.input_dir / "versions.json",
         {
@@ -176,6 +186,7 @@ def run_pipeline(
         nodes,
         counts,
         min_count=int(config.graph.get("min_count", 1)),
+        min_children=int(config.graph.get("min_children", 3)),
     )
 
     graphs_dir = storage.output_dir / "profession_graphs"
@@ -183,12 +194,33 @@ def run_pipeline(
     for grade, graph in graphs.items():
         write_json(graphs_dir / f"{config.profession_slug}_{GRADE_FILE_SUFFIX[grade]}.json", graph)
         graph_issues[grade] = [
-            issue.to_dict() for issue in validate_graph(graph, min_children=int(config.graph["min_children"]))
+            issue.to_dict()
+            for issue in validate_graph(
+                graph,
+                min_children=int(config.graph["min_children"]),
+                max_depth=int(config.graph["max_depth"]),
+            )
         ]
 
     used_names: set[str] = set()
     for graph in graphs.values():
         used_names.update(collect_leaf_names(graph))
+    leaf_counts = {grade: len(collect_leaf_names(graph)) for grade, graph in graphs.items()}
+    target_leaf_min = int(config.graph.get("target_leaf_min", 100))
+    target_leaf_max = int(config.graph.get("target_leaf_max", 180))
+    graph_size_issues = [
+        {
+            "severity": "warning",
+            "grade": grade,
+            "leaf_count": count,
+            "target_min": target_leaf_min,
+            "target_max": target_leaf_max,
+            "message": "Размер графа вне целевого диапазона; для демо и малого корпуса это допустимо и явно зафиксировано.",
+        }
+        for grade, count in leaf_counts.items()
+        if not target_leaf_min <= count <= target_leaf_max
+    ]
+    graph_similarity = _compare_grade_graphs(graphs)
 
     date_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     image_root = storage.output_dir / f"profession_graph_node_images_{date_stamp}"
@@ -232,6 +264,16 @@ def run_pipeline(
     write_json(storage.root / "phrase_evidence.json", [item.to_dict() for item in all_phrase_occurrences])
     phrase_candidates = build_phrase_candidates(all_phrase_occurrences)
     write_json(storage.root / "phrase_candidates.json", phrase_candidates)
+    write_json(
+        storage.root / "alignment_ledger.json",
+        {
+            "status": "manual_review_required_for_changes",
+            "allowed_operations": ["ADD", "MOVE", "RENAME", "RECLASSIFY", "SPLIT", "MERGE", "REMOVE"],
+            "operations": [],
+            "candidate_sources": ["phrase_candidates.json", "unclassified.json", "review_decisions_template.json"],
+            "automatic_dictionary_changes": False,
+        },
+    )
     explicit_company_fragments = sum(
         fragment.exclusion_reason == "company_section"
         for parsed in parsed_by_vacancy.values()
@@ -321,6 +363,7 @@ def run_pipeline(
     report = {
         "run_id": storage.root.name,
         "profession": config.profession_name,
+        "source_type": config.source.get("type", "file"),
         "dictionary_version": dictionary_version,
         "vacancies_collected": len(vacancies),
         "vacancies_included": len(included),
@@ -341,6 +384,9 @@ def run_pipeline(
         "professional_phrase_occurrences": len(all_phrase_occurrences),
         "professional_phrase_candidates": len(phrase_candidates["items"]),
         "output_nodes": len(used_names),
+        "leaf_counts": leaf_counts,
+        "graph_size_issues": graph_size_issues,
+        "grade_graph_similarity": graph_similarity,
         "scoring_mode": config.scoring["mode"],
         "count_formula": "unique vacancies with skill / all vacancies in profession and grade * 100",
         "grade_mode": config.grade_rules["mode"],
@@ -359,7 +405,7 @@ def run_pipeline(
             "probable reposts are reported but not automatically excluded",
             "parallel history writes are not locked",
             "professional phrases remain candidates until curator review",
-            "live HH collection waits for the pending application token",
+            "live HH API collection waits for the pending application token; automatic Trudvsem and manual HH-page modes are available without it",
             "AI candidate suggestions are disabled until a provider and API key are configured",
         ],
     }
@@ -375,11 +421,54 @@ def run_pipeline(
     return report
 
 
+def _compare_grade_graphs(graphs: dict[Grade, dict[str, Any]]) -> list[dict[str, Any]]:
+    paths_by_grade: dict[Grade, set[str]] = {
+        grade: _leaf_paths(graph) for grade, graph in graphs.items()
+    }
+    grades = sorted(paths_by_grade)
+    result: list[dict[str, Any]] = []
+    for index, left in enumerate(grades):
+        for right in grades[index + 1 :]:
+            union = paths_by_grade[left] | paths_by_grade[right]
+            similarity = len(paths_by_grade[left] & paths_by_grade[right]) / len(union) if union else 1.0
+            result.append(
+                {
+                    "grades": [left, right],
+                    "jaccard_similarity": round(similarity, 4),
+                    "nearly_identical": len(union) >= 5 and similarity >= 0.95,
+                    "shared_leaf_paths": len(paths_by_grade[left] & paths_by_grade[right]),
+                    "total_leaf_paths": len(union),
+                }
+            )
+    return result
+
+
+def _leaf_paths(graph: dict[str, Any]) -> set[str]:
+    paths: set[str] = set()
+
+    def visit(node: dict[str, Any], path: list[str]) -> None:
+        for name, child in node.items():
+            current = [*path, name]
+            if isinstance(child, dict) and set(child) == {"count"}:
+                paths.add(" > ".join(current))
+            elif isinstance(child, dict):
+                visit(child, current)
+
+    for root, node in graph.items():
+        if isinstance(node, dict):
+            visit(node, [root])
+    return paths
+
+
 def _collect(config: AppConfig, override_path: str | Path | None) -> CollectionResult:
     if override_path is not None:
         return FileCollector(override_path).collect()
     if config.source.get("type", "file") == "hh":
         return HHCollector(config.source).collect()
+    if config.source.get("type") == "hh_public_pages":
+        return HHPublicPageCollector(config.source).collect()
+    if config.source.get("type") == "trudvsem":
+        return TrudvsemCollector(config.source).collect()
     source_path = config.source.get("path")
     if not source_path:
         raise PipelineError("Для source.type=file нужен source.path или параметр --vacancies.")

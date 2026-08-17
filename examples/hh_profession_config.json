@@ -11,11 +11,12 @@
     "queries": ["ML инженер", "Machine Learning Engineer"],
     "areas": ["1", "2"],
     "period_days": 30,
+    "date_chunk_days": 7,
     "per_page": 20,
     "max_pages": 1,
     "retries": 3,
     "timeout_seconds": 30,
-    "user_agent": "ProfessionalGraphs/0.7 (mlprofessionalgraphs@gmail.com)",
+    "user_agent": "ProfessionalGraphs/0.9 (mlprofessionalgraphs@gmail.com)",
     "user_agent_env": "HH_USER_AGENT",
     "token_env": "HH_API_TOKEN",
     "include_inactive": false
@@ -31,7 +32,9 @@
     "min_children": 3,
     "min_count": 1,
     "target_depth": 4,
-    "max_depth": 6
+    "max_depth": 6,
+    "target_leaf_min": 100,
+    "target_leaf_max": 180
   },
   "grade_rules": {
     "conflict_policy": "keep_best",
