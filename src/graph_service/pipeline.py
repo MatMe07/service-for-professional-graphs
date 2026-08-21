@@ -461,18 +461,35 @@ def _leaf_paths(graph: dict[str, Any]) -> set[str]:
 
 
 def _collect(config: AppConfig, override_path: str | Path | None) -> CollectionResult:
+    # Если передан override_path — используем файл
     if override_path is not None:
         return FileCollector(override_path).collect()
-    if config.source.get("type", "file") == "hh":
+    
+    # Определяем тип источника
+    source_type = config.source.get("type", "file")
+    # print(config)
+    
+    if source_type == "hh":
         return HHCollector(config.source).collect()
-    if config.source.get("type") == "hh_public_pages":
+    
+    if source_type == "hh_public_pages":
         return HHPublicPageCollector(config.source).collect()
-    if config.source.get("type") == "trudvsem":
+    
+    if source_type == "trudvsem":
         return TrudvsemCollector(config.source).collect()
-    source_path = config.source.get("path")
-    if not source_path:
-        raise PipelineError("Для source.type=file нужен source.path или параметр --vacancies.")
-    candidate = Path(str(source_path))
-    if not candidate.is_absolute():
-        candidate = (config.path.parent / candidate).resolve()
-    return FileCollector(candidate).collect()
+    
+    
+    if source_type == "hh_requests":
+        from .collectors.hh_requests import HHRequestsCollector
+        return HHRequestsCollector(config.source).collect()
+    
+    if source_type == "file":
+        source_path = config.source.get("path")
+        if not source_path:
+            raise PipelineError("Для source.type=file нужен source.path или параметр --vacancies.")
+        candidate = Path(str(source_path))
+        if not candidate.is_absolute():
+            candidate = (config.path.parent / candidate).resolve()
+        return FileCollector(candidate).collect()
+    
+    raise PipelineError(f"Неизвестный тип источника: {source_type}")

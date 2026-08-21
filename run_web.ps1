@@ -6,7 +6,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $bundledPython = Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
 $pythonExecutable = if ($env:GRAPH_SERVICE_PYTHON) {
-    $env:GRAPH_SERVICE_PYTHON
+    $env:.\run_web.ps1
 } elseif (Test-Path -LiteralPath $bundledPython) {
     $bundledPython
 } else {

@@ -21,7 +21,7 @@ if ($LASTEXITCODE -ne 0) {
 Set-Location -LiteralPath $projectRoot
 $env:PYTHONPATH = Join-Path $projectRoot 'src'
 
-if (-not $SkipTests) {
+if (-not $SkipTests) {я
     & $pythonExecutable -m unittest discover -s tests
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 }

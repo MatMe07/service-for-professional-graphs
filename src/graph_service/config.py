@@ -94,8 +94,8 @@ def load_config(path: str | Path) -> AppConfig:
 
     source = data.get("source", {})
     source_type = source.get("type", "file")
-    if source_type not in {"file", "hh", "hh_public_pages", "trudvsem"}:
-        raise ConfigError("source.type должен быть file, hh, hh_public_pages или trudvsem.")
+    if source_type not in {"file", "hh", "hh_public_pages", "trudvsem",  "hh_requests"}:
+        raise ConfigError("source.type должен быть file, hh, hh_public_pages, trudvsem или hh_requests.")
     if source_type == "hh_public_pages":
         public_urls = source.get("urls", [])
         if not isinstance(public_urls, list) or not 1 <= len(public_urls) <= 100:

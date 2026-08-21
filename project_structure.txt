@@ -1,0 +1,1227 @@
+C:.
+|   .gitattributes
+|   .gitignore
+|   CHANGELOG.md
+|   collect_all.ps1
+|   FIRST_VERSION.md
+|   project_structure.txt
+|   pyproject.toml
+|   QUESTIONS_FOR_NIKITA.md
+|   README.md
+|   run_demo.ps1
+|   run_first_version.ps1
+|   run_web.ps1
+|   TZ_COMPLIANCE.md
+|   vacancy_136351085_20260819_001913.html
+|   vacancy_136351085_20260819_001913_meta.json
+|   vacancy_136351085_jsonld.json
+|   vacancy_136351085_jsonld_full_20260819_151636.json
+|   
+|               
++---data
+|   |   LATEST_RUN.json
+|   |   
+|   +---configs
+|   |       machine_learning_engineer_hh_requests.json
+|   |       python_developer_hh_requests.json
+|   |       python_developer_hh_search.json
+|   |       python_developer_hh_selenium.json
+|   |       python_developer_public_search.json
+|   |       
+|   +---history
+|   |   \---vacancies
+|   |       +---file
+|   |       +---hh_requests
+|   |       |   +---13fcaf57b1fcf0578f89
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           4618b793f980b3fc649f16527a34c4f151be5f9d4bf722c97749b13fe71b56fb.json
+|   |       |   |           
+|   |       |   +---1452f14c93f9e3b9848a
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           7a31a93b42b069a5442531cfe515b38ad301403e17c67fadbf02bc263938bcd1.json
+|   |       |   |           
+|   |       |   +---1974b70cf46d93fa26de
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           8823a9db3f4c92bb7c500ad06984ff200ec5e185370de1529820864cb997b26a.json
+|   |       |   |           
+|   |       |   +---1a1105ad72ba59379f47
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           bdd9fc3e756d6d026de87dc4217a7cb053092a5a335f257aa440813b8bec04c0.json
+|   |       |   |           
+|   |       |   +---234167341d8e5b234412
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           19bbcbc972fff26978aeb95073eec0d9edcc8e36ac627d14cd2d413a29bef762.json
+|   |       |   |           
+|   |       |   +---253906359d28255f3ef7
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           ced638d6e47e0e84acb4685b9872ad82a1429ddf9f308d32f7413270aa2ff6aa.json
+|   |       |   |           d6e223a9db5caf74c42f41fd2e664cc779ac194dbd9c1530668696388a01950b.json
+|   |       |   |           
+|   |       |   +---34f3631144207f673cdb
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           40a2f3834ef3a36627e33b05ecf7abbb00ba1c09c48a125de0677c4f74bc4d53.json
+|   |       |   |           
+|   |       |   +---39eda044779943bf86ff
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           8e8a930d095564b3c94c610478bfe841b37e95857578d917e62f773e93a44f9b.json
+|   |       |   |           
+|   |       |   +---56062eb6031ab14175ae
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           df75fabe38b9fcbcb0379d5147aaf04c2fd02355c5e0396ce011c227a2e3640e.json
+|   |       |   |           
+|   |       |   +---5889b1ab19df8d1c4e14
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           7177b053331831331998caa85424e7a64b52317b6205f9a556d5c215ebf42bea.json
+|   |       |   |           
+|   |       |   +---5db7f57def73800815e7
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           066e1bae5b86597b9f62fef9234d9f15d8fdfd9f0a1700f5d25ec1cb0f252c42.json
+|   |       |   |           
+|   |       |   +---62682a3f2916f6bfa295
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           ec37bb49c6fc19eb2c470360d51a8b5fe67c6f6768c6470577c5b49e0c4b2a75.json
+|   |       |   |           
+|   |       |   +---6378f18b5cec95696247
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           16f9dbd469ca60ec21c4fb20a6873fb5f9ea3669170c66f6372ddb1b03acee50.json
+|   |       |   |           958e65fcf0b2d56b09036ea1355ae1e34990d29e21fca2b53b5b6a05b9f04223.json
+|   |       |   |           
+|   |       |   +---6b13a47768b9226f763e
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           5bea017b5cfbdf5f88f6d364d05e63d403e5022fe411249f5f3ac412e615b1e7.json
+|   |       |   |           
+|   |       |   +---6fb395754b3a747c5b08
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           3ec470961646dc74185730ee19b43b62c28cb91b7e600fb63a5334f279acea6e.json
+|   |       |   |           
+|   |       |   +---751337b64b193f3e13db
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           d8324396616486259569c1f74739e52f04fe1c154a8383a2954c3920537cfbd5.json
+|   |       |   |           
+|   |       |   +---776daa6d396209f99eb9
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           8b24525af73a8acfc8bcf1ac71703f70325415ac8847bf782819aa84493a73d9.json
+|   |       |   |           
+|   |       |   +---7acedaa92104df65f40e
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           cd13d21866ec47e6705bca8b886ee5bf88ef5cb6050ec3108536ed302136d7dd.json
+|   |       |   |           
+|   |       |   +---8fff49d4e40e5fd642f8
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           19e64afa48b9a5a46d0b3447f6b74c8d29fa3ea7353cdada3b272d1c76df6156.json
+|   |       |   |           
+|   |       |   +---9caafacaa24af34cc9be
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           f89ae1b6817dab811d60612d1b4adfe4b1adaf8e792c56961422d24025586b2e.json
+|   |       |   |           
+|   |       |   +---aeba234e1eb2e06b0706
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           1535f4d0caca8dbfb19b4c402b96f52a7bc6634828532b28a5bed8f6c19d3160.json
+|   |       |   |           9e1fd641d09ac7b3893d283e0531d3124784736ec1d72e0aee7f78c824bed640.json
+|   |       |   |           
+|   |       |   +---ba8585d3441c530bfedd
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           98bb1fb08c09184ed116f7e4b2504c86e991d9ecce782e6e67d3d8799c0a1d78.json
+|   |       |   |           
+|   |       |   +---c73ccdd519f16eb34440
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           50d4b6bff82a9455aad76bf631180b833563db88f1470883c6ebee8791b43e9c.json
+|   |       |   |           9821942c696010463be27777bdb8d15ba4e383a2516451c88e20a504ede17275.json
+|   |       |   |           
+|   |       |   +---ca2009abcd686fb30a4d
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           59ab113125dd16d897b92b86cccd7934af9a50e7cdc4fea102311e15f31f5f45.json
+|   |       |   |           82953dbe8132eb0537b71ecab7ff5a2f98f5e4df1b001761ee18240c17f047b9.json
+|   |       |   |           
+|   |       |   +---ce2cba4c377df4213866
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           19b19378170f25cce2b043fd652318a35e123d9c01b29af47c6b8defddcb7bb9.json
+|   |       |   |           991dad3fa73c1f085c9a93ea4826d1ef5a237b3df8d849d4d084c6c0ab14d1f6.json
+|   |       |   |           
+|   |       |   +---cef78e3d8d671e9b9e7d
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           43779b2556f5bc16e58343e8f891e3fb8600167cbaf8cd158af425fd98fb77e9.json
+|   |       |   |           fce162f80704b59cbc20b2200675eab1d295f74036ec8b570025ea3ef979b497.json
+|   |       |   |           
+|   |       |   +---d52868e9e6948e4c9bcd
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           7bfe0ee88cb70460b53bcfe38e341ee081319982b36f0752b2a60f6cc29958b7.json
+|   |       |   |           
+|   |       |   +---df1a2d54e9d649846272
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           5d09c14669fe19bd333ec142a1b3a92f56d51a23c94d96fa7f316e14efd5b4df.json
+|   |       |   |           
+|   |       |   +---e0557aec098fe21b643a
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           aaeecc084b100bfbae5b05ba3677b760df17e32ff589b0e9d3f1ce323e05dec3.json
+|   |       |   |           
+|   |       |   +---e3e0588d98a972fd6bf7
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           e0ee8c40131b93a85f7aeecab9058c6951484a4e8e8506296d44499da5704e8b.json
+|   |       |   |           
+|   |       |   +---ebacaafa87a285d8e014
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           a0ae3f3484d0c4b3bb9c066f5ef22c73967c54d6a2af66f7649973a722404d94.json
+|   |       |   |           b5573ea00e462a5ff27ad11ed8c42211fafda3beacd65233c142623e1bbdfc4e.json
+|   |       |   |           
+|   |       |   +---f566c88c6b78f696ced6
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           bf1e4971bc3f8be99ac019dfb5860821280599a453646198c93ae0509e5f58b6.json
+|   |       |   |           
+|   |       |   +---f5b33079e219bd477643
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           2c01963e237e3613d1148735e181164c5efd6908683b39ee5b16e4de4d82983b.json
+|   |       |   |           
+|   |       |   +---f5e9dc7ab1dc6deb8a31
+|   |       |   |   |   index.json
+|   |       |   |   |   
+|   |       |   |   \---versions
+|   |       |   |           ce9884469f92a161731a97fae090d6a2aa79140b09f2ce9f7509ecbe25dcdd3d.json
+|   |       |   |           
+|   |       |   \---fda05e6d206d6eef5613
+|   |       |       |   index.json
+|   |       |       |   
+|   |       |       \---versions
+|   |       |               6b6edc14f93b777b7ab38dcaf0333514ae4561f2de53703b8df0be37d7e3bd17.json
+|   |       |               
+|   |       \---trudvsem
+|   \---runs
+|       +---20260820T114518778141Z_python_developer
+|       |   |   alignment_ledger.json
+|       |   |   boilerplate_report.json
+|       |   |   duplicates.json
+|       |   |   evidence.json
+|       |   |   excluded_evidence.json
+|       |   |   grade_conflicts.json
+|       |   |   grade_decisions.json
+|       |   |   phrase_candidates.json
+|       |   |   phrase_evidence.json
+|       |   |   review_decisions_template.json
+|       |   |   review_report.html
+|       |   |   review_report.json
+|       |   |   scoring_components.json
+|       |   |   unclassified.json
+|       |   |   vacancy_versions.json
+|       |   |   
+|       |   +---input
+|       |   |       profession_config.json
+|       |   |       source_queries.json
+|       |   |       versions.json
+|       |   |       
+|       |   +---normalized
+|       |   |       134427427_f4b47940b195.json
+|       |   |       135145074_02f375f948db.json
+|       |   |       136193666_f86f00b5f092.json
+|       |   |       136227814_2e3e375f7a82.json
+|       |   |       136323698_595f10f56572.json
+|       |   |       136372107_11dfee1e7222.json
+|       |   |       136394800_d300422b24e6.json
+|       |   |       136417846_3674dee7fdb0.json
+|       |   |       136449042_eb9a4f95ee9d.json
+|       |   |       136450157_dff67e05e920.json
+|       |   |       
+|       |   +---output
+|       |   |   |   validation_report.json
+|       |   |   |   
+|       |   |   +---profession_graphs
+|       |   |   |       python_developer_jun.json
+|       |   |   |       python_developer_middle.json
+|       |   |   |       python_developer_senior.json
+|       |   |   |       
+|       |   |   +---profession_graph_node_courses_2026-08-20
+|       |   |   |       course_dictionary.json
+|       |   |   |       coverage.json
+|       |   |   |       learning_resources.json
+|       |   |   |       
+|       |   |   \---profession_graph_node_images_2026-08-20
+|       |   |       |   image_dictionary.json
+|       |   |       |   
+|       |   |       +---images
+|       |   |       |   +---03
+|       |   |       |   |       03312bee2e657c9ed7249268b32925e7997647c62ffb3ce56d1cc6e61404fa41.svg
+|       |   |       |   |       
+|       |   |       |   +---15
+|       |   |       |   |       15186414b425eace75d8c45e24a07355d4de1df6577ef0fef0108b36bbdc6857.svg
+|       |   |       |   |       
+|       |   |       |   +---18
+|       |   |       |   |       18885f27b5af9012df19e496460f9294d5ab76128824c6f993787004f6d9a7db.svg
+|       |   |       |   |       
+|       |   |       |   +---1f
+|       |   |       |   |       1fc0c785332e80fb931c7a11323f27abb47a0a7f8bbdf23ffca3cac46497b21c.svg
+|       |   |       |   |       
+|       |   |       |   +---20
+|       |   |       |   |       20f3bd11a0565a60adc35f9199e889c70eb841db6935eb8143827978bdba316a.svg
+|       |   |       |   |       
+|       |   |       |   +---2d
+|       |   |       |   |       2dd9eb7d9f0c11864fe058aaa0f3fbae5b1887555c9bc1f9ff84877d75f446a5.svg
+|       |   |       |   |       
+|       |   |       |   +---3c
+|       |   |       |   |       3c26e7a5b744df5ab7cb167281bec422d81200c1c062dacfeb69f5581680b762.svg
+|       |   |       |   |       
+|       |   |       |   +---3d
+|       |   |       |   |       3d2006711d4cf0010ce16f31a49a5a2fc2e47bc87bf4e5f48ca49098411a7055.svg
+|       |   |       |   |       
+|       |   |       |   +---3e
+|       |   |       |   |       3e6dffdf3d287bdd8df15bbe4b45c0465b613734a0081e4e72edd8e5ab159659.svg
+|       |   |       |   |       
+|       |   |       |   +---41
+|       |   |       |   |       41a52587276c392bfdf0c5086b78662e089895fe2bf22e3d413af8e75f98bc3d.svg
+|       |   |       |   |       
+|       |   |       |   +---44
+|       |   |       |   |       4445d918dfcf1af804b749eeee4835dccfd27c06b6828533be827473ff63439f.svg
+|       |   |       |   |       44582e0db5b0835aeb455646b18712a06999a8d89d8141f78b3ae3b3772f3c27.svg
+|       |   |       |   |       
+|       |   |       |   +---48
+|       |   |       |   |       4828e60247c1636f57b7446a314e7f599c12b53d40061cc851a1442004354fed.svg
+|       |   |       |   |       
+|       |   |       |   +---74
+|       |   |       |   |       74fc14c76699725aa05b15868fe2f6b65c6bf4ba660b97296ee4b9966e17336c.svg
+|       |   |       |   |       
+|       |   |       |   +---7e
+|       |   |       |   |       7e94675ff2dea1166207244f07f92ed60b6e72bda7c1e68e92374eeb98516973.svg
+|       |   |       |   |       
+|       |   |       |   +---8b
+|       |   |       |   |       8b9b0b3f792de8a6ad54ee531bd8f2efba7a64189029519237d882b3724dbcfd.svg
+|       |   |       |   |       
+|       |   |       |   +---8f
+|       |   |       |   |       8ff7b29c130d220b5381194e89b4b9ca772eb10cb205d8e6d2260385cbdcab07.svg
+|       |   |       |   |       
+|       |   |       |   +---90
+|       |   |       |   |       90cf7bd8432d0199fb2b3450ca06d299a93f0d2f35c36d259e35268cff57f18b.svg
+|       |   |       |   |       
+|       |   |       |   +---91
+|       |   |       |   |       91231ff9ab6685fac02e3b2f8ec250c2c866b19be46ca7a195186b9c85e6fc69.svg
+|       |   |       |   |       
+|       |   |       |   +---96
+|       |   |       |   |       96c5c4dea434a213282058e11a9e24a6642c8305ba6371ece577f7d296c49e95.svg
+|       |   |       |   |       
+|       |   |       |   +---a3
+|       |   |       |   |       a37d07fe30048d3ae9db9a02c8c16da029bb44a586c5adaea2a1ce7be2c9d904.svg
+|       |   |       |   |       
+|       |   |       |   +---a7
+|       |   |       |   |       a7056a455639d1c7deec82ee787db24a0c1878e2792b4597709f0facf7cc7b35.svg
+|       |   |       |   |       a7f6415749a3297a04a2a5159d1542811f779562b547367d5e13a30e0ca5fc0f.svg
+|       |   |       |   |       
+|       |   |       |   +---ae
+|       |   |       |   |       ae4863bdae026314d5994730ad24730434f256c274d8431c53ed537393992be6.svg
+|       |   |       |   |       
+|       |   |       |   +---b0
+|       |   |       |   |       b0146d719a60b3088216ca975412829fce5fb9fa9f91f2b678539e2bffba56cb.svg
+|       |   |       |   |       
+|       |   |       |   +---b2
+|       |   |       |   |       b27ad06d123c6145fba7e9217a4cfbf2488b4743810ed8c8ff14ad01a5bbe515.svg
+|       |   |       |   |       
+|       |   |       |   +---b7
+|       |   |       |   |       b7da0bdee618c8f0ab37878b7f330e9a2036ee11d2e3281270b07a7e46b56cae.svg
+|       |   |       |   |       
+|       |   |       |   +---b9
+|       |   |       |   |       b949c922b6ef9ffbf41eb853b99578624ca6f6475c4f13abe2995484b0348e5c.svg
+|       |   |       |   |       b953bd92180f4923735dc2054c6431bdd46ec62737f8347508973d49128c9edc.svg
+|       |   |       |   |       
+|       |   |       |   +---c0
+|       |   |       |   |       c0862201e27e10f591cc0e3fb8d1dd4f6a4af2559d04a71fb0cb142d59b2f6b7.svg
+|       |   |       |   |       
+|       |   |       |   +---c4
+|       |   |       |   |       c44362bf3425683327ee36aacdb97907dd1e053c9c8c0e5d3efcbee23d91bf63.svg
+|       |   |       |   |       
+|       |   |       |   +---c8
+|       |   |       |   |       c8d75cb0759127b80687e606d9b1c88365da7cf056374711881881897a52a825.svg
+|       |   |       |   |       
+|       |   |       |   +---cc
+|       |   |       |   |       cc52d03280b7034c8e3653d2748ebd489a873ef4bbc89cb187fbfcabfbbf6873.svg
+|       |   |       |   |       
+|       |   |       |   +---ce
+|       |   |       |   |       ce24da91fd9c729b2fd57fdae65d21e310be6cddb07fde060bd8d563224b8cea.svg
+|       |   |       |   |       
+|       |   |       |   +---d1
+|       |   |       |   |       d1e9567da9a8a4b0c43da0791da1d2594cf5d7b78547fea132d06bccc1b06091.svg
+|       |   |       |   |       
+|       |   |       |   +---de
+|       |   |       |   |       dee91ddb90597936302cfd4341e409c87779ed9e0e8c8fde580e0af6cdace179.svg
+|       |   |       |   |       
+|       |   |       |   +---e6
+|       |   |       |   |       e6169e958b37ce8662817b0f3e0bf450a174742fafc527800e67f430738b4b63.svg
+|       |   |       |   |       
+|       |   |       |   +---e7
+|       |   |       |   |       e72997c0463372ded9a45918f8aebb377b3aa5d179fe630dc240004362f912a7.svg
+|       |   |       |   |       
+|       |   |       |   +---eb
+|       |   |       |   |       ebe336a73963f7a77641214edf5b33c7e9fafb8a556f35180f40da50afd221b2.svg
+|       |   |       |   |       
+|       |   |       |   +---ed
+|       |   |       |   |       ed0504f70a48ffe9ed17e7ddee02a72a9c8af602aee1f7ce11853975ce911733.svg
+|       |   |       |   |       
+|       |   |       |   +---f1
+|       |   |       |   |       f1deb75fa21d3c47a6e7a45967b79fad2d053947066dc95322c5bcee1e9fe21c.svg
+|       |   |       |   |       
+|       |   |       |   \---fa
+|       |   |       |           fa14d67376ab5cd83eb6b5c8fbe6e2727069806dd68dbc46acb35fe83ed15968.svg
+|       |   |       |           
+|       |   |       \---licenses
+|       |   |               PROJECT-TEMPLATE-LICENSE.txt
+|       |   |               
+|       |   \---raw
+|       |       +---search
+|       |       |       0001_hh_requests_Python_area_1_02cd7c86ac81_page_000.json
+|       |       |       0002_hh_requests_Python_Developer_area_1_51216b549a5f_page_000.json
+|       |       |       
+|       |       \---vacancies
+|       |               134427427_f4b47940b195.json
+|       |               135145074_02f375f948db.json
+|       |               136193666_f86f00b5f092.json
+|       |               136227814_2e3e375f7a82.json
+|       |               136323698_595f10f56572.json
+|       |               136372107_11dfee1e7222.json
+|       |               136394800_d300422b24e6.json
+|       |               136417846_3674dee7fdb0.json
+|       |               136449042_eb9a4f95ee9d.json
+|       |               136450157_dff67e05e920.json
+|       |               
+|       +---20260820T135254386528Z_python_developer
+|       |   |   alignment_ledger.json
+|       |   |   boilerplate_report.json
+|       |   |   duplicates.json
+|       |   |   evidence.json
+|       |   |   excluded_evidence.json
+|       |   |   grade_conflicts.json
+|       |   |   grade_decisions.json
+|       |   |   phrase_candidates.json
+|       |   |   phrase_evidence.json
+|       |   |   review_decisions_template.json
+|       |   |   review_report.html
+|       |   |   review_report.json
+|       |   |   scoring_components.json
+|       |   |   unclassified.json
+|       |   |   vacancy_versions.json
+|       |   |   
+|       |   +---input
+|       |   |       profession_config.json
+|       |   |       source_queries.json
+|       |   |       versions.json
+|       |   |       
+|       |   +---normalized
+|       |   |       131031614_2f8414ded1c7.json
+|       |   |       133712095_a5fc4009c7f7.json
+|       |   |       134427427_f4b47940b195.json
+|       |   |       135278110_c4d19e40cce2.json
+|       |   |       135984783_3ab5a67df7a4.json
+|       |   |       136193666_f86f00b5f092.json
+|       |   |       136323698_595f10f56572.json
+|       |   |       136372107_11dfee1e7222.json
+|       |   |       136394800_d300422b24e6.json
+|       |   |       136415177_5d615c5ed434.json
+|       |   |       136455374_d00d4b08c243.json
+|       |   |       136456535_df5c4c9c2d87.json
+|       |   |       
+|       |   +---output
+|       |   |   |   validation_report.json
+|       |   |   |   
+|       |   |   +---profession_graphs
+|       |   |   |       python_developer_jun.json
+|       |   |   |       python_developer_middle.json
+|       |   |   |       python_developer_senior.json
+|       |   |   |       
+|       |   |   +---profession_graph_node_courses_2026-08-20
+|       |   |   |       course_dictionary.json
+|       |   |   |       coverage.json
+|       |   |   |       learning_resources.json
+|       |   |   |       
+|       |   |   \---profession_graph_node_images_2026-08-20
+|       |   |       |   image_dictionary.json
+|       |   |       |   
+|       |   |       +---images
+|       |   |       |   +---01
+|       |   |       |   |       016a2291a79d2064915488a95b927f43b1008219b730a996816e29e381523e32.svg
+|       |   |       |   |       
+|       |   |       |   +---03
+|       |   |       |   |       03312bee2e657c9ed7249268b32925e7997647c62ffb3ce56d1cc6e61404fa41.svg
+|       |   |       |   |       
+|       |   |       |   +---04
+|       |   |       |   |       040228846ead4a4195145fe089343cb0894d00a9380176a41a8f6c5ee70b4824.svg
+|       |   |       |   |       
+|       |   |       |   +---06
+|       |   |       |   |       0642a7b0f3466de53f8acd4fd3d71105f567d8ca4feae5e070e2c4d814e8ced3.svg
+|       |   |       |   |       
+|       |   |       |   +---0c
+|       |   |       |   |       0c03e3faaef073c59e48370a7abceaf35a8f9d49e9dcac105593d477b9818b39.svg
+|       |   |       |   |       
+|       |   |       |   +---18
+|       |   |       |   |       18885f27b5af9012df19e496460f9294d5ab76128824c6f993787004f6d9a7db.svg
+|       |   |       |   |       
+|       |   |       |   +---1f
+|       |   |       |   |       1fc0c785332e80fb931c7a11323f27abb47a0a7f8bbdf23ffca3cac46497b21c.svg
+|       |   |       |   |       
+|       |   |       |   +---20
+|       |   |       |   |       20f3bd11a0565a60adc35f9199e889c70eb841db6935eb8143827978bdba316a.svg
+|       |   |       |   |       
+|       |   |       |   +---2d
+|       |   |       |   |       2dd9eb7d9f0c11864fe058aaa0f3fbae5b1887555c9bc1f9ff84877d75f446a5.svg
+|       |   |       |   |       
+|       |   |       |   +---31
+|       |   |       |   |       312082c062245bf158b55391ff4eb7c82eae10059bb0bbbf4c37e705a8ac1f44.svg
+|       |   |       |   |       
+|       |   |       |   +---3c
+|       |   |       |   |       3c26e7a5b744df5ab7cb167281bec422d81200c1c062dacfeb69f5581680b762.svg
+|       |   |       |   |       
+|       |   |       |   +---3e
+|       |   |       |   |       3e6dffdf3d287bdd8df15bbe4b45c0465b613734a0081e4e72edd8e5ab159659.svg
+|       |   |       |   |       
+|       |   |       |   +---41
+|       |   |       |   |       41a52587276c392bfdf0c5086b78662e089895fe2bf22e3d413af8e75f98bc3d.svg
+|       |   |       |   |       
+|       |   |       |   +---44
+|       |   |       |   |       4445d918dfcf1af804b749eeee4835dccfd27c06b6828533be827473ff63439f.svg
+|       |   |       |   |       44582e0db5b0835aeb455646b18712a06999a8d89d8141f78b3ae3b3772f3c27.svg
+|       |   |       |   |       
+|       |   |       |   +---48
+|       |   |       |   |       4828e60247c1636f57b7446a314e7f599c12b53d40061cc851a1442004354fed.svg
+|       |   |       |   |       
+|       |   |       |   +---74
+|       |   |       |   |       74fc14c76699725aa05b15868fe2f6b65c6bf4ba660b97296ee4b9966e17336c.svg
+|       |   |       |   |       
+|       |   |       |   +---8b
+|       |   |       |   |       8b9b0b3f792de8a6ad54ee531bd8f2efba7a64189029519237d882b3724dbcfd.svg
+|       |   |       |   |       
+|       |   |       |   +---8f
+|       |   |       |   |       8ff7b29c130d220b5381194e89b4b9ca772eb10cb205d8e6d2260385cbdcab07.svg
+|       |   |       |   |       
+|       |   |       |   +---90
+|       |   |       |   |       90cf7bd8432d0199fb2b3450ca06d299a93f0d2f35c36d259e35268cff57f18b.svg
+|       |   |       |   |       
+|       |   |       |   +---96
+|       |   |       |   |       96c5c4dea434a213282058e11a9e24a6642c8305ba6371ece577f7d296c49e95.svg
+|       |   |       |   |       
+|       |   |       |   +---a3
+|       |   |       |   |       a37d07fe30048d3ae9db9a02c8c16da029bb44a586c5adaea2a1ce7be2c9d904.svg
+|       |   |       |   |       a3aff470df0ec12cdd5e72626afb4ebb6050ef243807fc560cba5372a9a638e1.svg
+|       |   |       |   |       
+|       |   |       |   +---a7
+|       |   |       |   |       a7056a455639d1c7deec82ee787db24a0c1878e2792b4597709f0facf7cc7b35.svg
+|       |   |       |   |       a7f6415749a3297a04a2a5159d1542811f779562b547367d5e13a30e0ca5fc0f.svg
+|       |   |       |   |       
+|       |   |       |   +---ae
+|       |   |       |   |       ae4863bdae026314d5994730ad24730434f256c274d8431c53ed537393992be6.svg
+|       |   |       |   |       
+|       |   |       |   +---b2
+|       |   |       |   |       b27ad06d123c6145fba7e9217a4cfbf2488b4743810ed8c8ff14ad01a5bbe515.svg
+|       |   |       |   |       
+|       |   |       |   +---b9
+|       |   |       |   |       b949c922b6ef9ffbf41eb853b99578624ca6f6475c4f13abe2995484b0348e5c.svg
+|       |   |       |   |       b953bd92180f4923735dc2054c6431bdd46ec62737f8347508973d49128c9edc.svg
+|       |   |       |   |       
+|       |   |       |   +---bf
+|       |   |       |   |       bfa97cfb590b2093ee41d9e44a906fbe19c3f809130727a37895afe9bad12756.svg
+|       |   |       |   |       
+|       |   |       |   +---c0
+|       |   |       |   |       c0862201e27e10f591cc0e3fb8d1dd4f6a4af2559d04a71fb0cb142d59b2f6b7.svg
+|       |   |       |   |       
+|       |   |       |   +---c1
+|       |   |       |   |       c1ba60ce13586503a21a05e9ef0bb959f1ba74a1d37bcfcbf5fc6bfb548f684d.svg
+|       |   |       |   |       
+|       |   |       |   +---c4
+|       |   |       |   |       c44362bf3425683327ee36aacdb97907dd1e053c9c8c0e5d3efcbee23d91bf63.svg
+|       |   |       |   |       
+|       |   |       |   +---c8
+|       |   |       |   |       c8d75cb0759127b80687e606d9b1c88365da7cf056374711881881897a52a825.svg
+|       |   |       |   |       
+|       |   |       |   +---cc
+|       |   |       |   |       cc52d03280b7034c8e3653d2748ebd489a873ef4bbc89cb187fbfcabfbbf6873.svg
+|       |   |       |   |       
+|       |   |       |   +---d1
+|       |   |       |   |       d1e9567da9a8a4b0c43da0791da1d2594cf5d7b78547fea132d06bccc1b06091.svg
+|       |   |       |   |       
+|       |   |       |   +---de
+|       |   |       |   |       dee91ddb90597936302cfd4341e409c87779ed9e0e8c8fde580e0af6cdace179.svg
+|       |   |       |   |       
+|       |   |       |   +---e6
+|       |   |       |   |       e6169e958b37ce8662817b0f3e0bf450a174742fafc527800e67f430738b4b63.svg
+|       |   |       |   |       
+|       |   |       |   +---e7
+|       |   |       |   |       e72997c0463372ded9a45918f8aebb377b3aa5d179fe630dc240004362f912a7.svg
+|       |   |       |   |       
+|       |   |       |   +---e8
+|       |   |       |   |       e86755d376aa8ebe9a236a2d5783c46ef5ca2437a9fafe90001d4df7b278e8cd.svg
+|       |   |       |   |       
+|       |   |       |   +---eb
+|       |   |       |   |       ebe336a73963f7a77641214edf5b33c7e9fafb8a556f35180f40da50afd221b2.svg
+|       |   |       |   |       
+|       |   |       |   +---ed
+|       |   |       |   |       ed0504f70a48ffe9ed17e7ddee02a72a9c8af602aee1f7ce11853975ce911733.svg
+|       |   |       |   |       
+|       |   |       |   +---f0
+|       |   |       |   |       f0e20f958a36947c7476d2088883df374855bacd08c88e9f8ffdb5c1d9da8c1a.svg
+|       |   |       |   |       
+|       |   |       |   +---f1
+|       |   |       |   |       f1deb75fa21d3c47a6e7a45967b79fad2d053947066dc95322c5bcee1e9fe21c.svg
+|       |   |       |   |       
+|       |   |       |   \---fa
+|       |   |       |           fa14d67376ab5cd83eb6b5c8fbe6e2727069806dd68dbc46acb35fe83ed15968.svg
+|       |   |       |           
+|       |   |       \---licenses
+|       |   |               PROJECT-TEMPLATE-LICENSE.txt
+|       |   |               
+|       |   \---raw
+|       |       +---search
+|       |       |       0001_hh_requests_Python_area_1_02cd7c86ac81_page_000.json
+|       |       |       0002_hh_requests_Python_Developer_area_1_51216b549a5f_page_000.json
+|       |       |       
+|       |       \---vacancies
+|       |               131031614_2f8414ded1c7.json
+|       |               133712095_a5fc4009c7f7.json
+|       |               134427427_f4b47940b195.json
+|       |               135278110_c4d19e40cce2.json
+|       |               135984783_3ab5a67df7a4.json
+|       |               136193666_f86f00b5f092.json
+|       |               136323698_595f10f56572.json
+|       |               136372107_11dfee1e7222.json
+|       |               136394800_d300422b24e6.json
+|       |               136415177_5d615c5ed434.json
+|       |               136455374_d00d4b08c243.json
+|       |               136456535_df5c4c9c2d87.json
+|       |               
+|       +---20260820T151430943245Z_machine_learning_engineer
+|       |   |   alignment_ledger.json
+|       |   |   boilerplate_report.json
+|       |   |   duplicates.json
+|       |   |   evidence.json
+|       |   |   excluded_evidence.json
+|       |   |   grade_conflicts.json
+|       |   |   grade_decisions.json
+|       |   |   phrase_candidates.json
+|       |   |   phrase_evidence.json
+|       |   |   review_decisions_template.json
+|       |   |   review_report.html
+|       |   |   review_report.json
+|       |   |   scoring_components.json
+|       |   |   unclassified.json
+|       |   |   vacancy_versions.json
+|       |   |   
+|       |   +---input
+|       |   |       profession_config.json
+|       |   |       source_queries.json
+|       |   |       versions.json
+|       |   |       
+|       |   +---normalized
+|       |   |       131546356_54489df58a17.json
+|       |   |       135828271_4be0d5dc5b31.json
+|       |   |       135897884_10efd75e992e.json
+|       |   |       135981347_25280de49a38.json
+|       |   |       136121003_f3cbd059f54f.json
+|       |   |       136134777_7d852a0a4181.json
+|       |   |       136260841_682a99b5eb8e.json
+|       |   |       136344624_b95c6cb459c8.json
+|       |   |       136442922_1175bf75099f.json
+|       |   |       136448381_ffe00cb33cd7.json
+|       |   |       136453729_1edcb1fd6327.json
+|       |   |       136460097_677ed97bf24c.json
+|       |   |       136464200_5a453b2fa20a.json
+|       |   |       
+|       |   +---output
+|       |   |   |   validation_report.json
+|       |   |   |   
+|       |   |   +---profession_graphs
+|       |   |   |       machine_learning_engineer_jun.json
+|       |   |   |       machine_learning_engineer_middle.json
+|       |   |   |       machine_learning_engineer_senior.json
+|       |   |   |       
+|       |   |   +---profession_graph_node_courses_2026-08-20
+|       |   |   |       course_dictionary.json
+|       |   |   |       coverage.json
+|       |   |   |       learning_resources.json
+|       |   |   |       
+|       |   |   \---profession_graph_node_images_2026-08-20
+|       |   |       |   image_dictionary.json
+|       |   |       |   
+|       |   |       +---images
+|       |   |       |   +---03
+|       |   |       |   |       03312bee2e657c9ed7249268b32925e7997647c62ffb3ce56d1cc6e61404fa41.svg
+|       |   |       |   |       
+|       |   |       |   +---04
+|       |   |       |   |       040228846ead4a4195145fe089343cb0894d00a9380176a41a8f6c5ee70b4824.svg
+|       |   |       |   |       
+|       |   |       |   +---0a
+|       |   |       |   |       0aa92944539cfeba123308d98166b7c5e5b5e064ed6829f3a25558590bcfabbd.svg
+|       |   |       |   |       
+|       |   |       |   +---0c
+|       |   |       |   |       0c03e3faaef073c59e48370a7abceaf35a8f9d49e9dcac105593d477b9818b39.svg
+|       |   |       |   |       
+|       |   |       |   +---18
+|       |   |       |   |       18885f27b5af9012df19e496460f9294d5ab76128824c6f993787004f6d9a7db.svg
+|       |   |       |   |       
+|       |   |       |   +---19
+|       |   |       |   |       197b0ff11cd452f01099e7386c8e45bc2d614da5a7bb8bc8daef5fdf8bf1fe83.svg
+|       |   |       |   |       
+|       |   |       |   +---20
+|       |   |       |   |       20f3bd11a0565a60adc35f9199e889c70eb841db6935eb8143827978bdba316a.svg
+|       |   |       |   |       
+|       |   |       |   +---24
+|       |   |       |   |       24564f4f168ee406e5f86d690ade31f0a00341530cf7fc04d01f729ceb05f817.svg
+|       |   |       |   |       
+|       |   |       |   +---27
+|       |   |       |   |       2788e71f1dccdd27caeda5452ad619442599582fddf005994d550f4b504c7b7d.svg
+|       |   |       |   |       
+|       |   |       |   +---2d
+|       |   |       |   |       2dd9eb7d9f0c11864fe058aaa0f3fbae5b1887555c9bc1f9ff84877d75f446a5.svg
+|       |   |       |   |       
+|       |   |       |   +---3b
+|       |   |       |   |       3b456fbcbd6a1d97aaf275630ed21068d574960f0de389802c994020ef5f628e.svg
+|       |   |       |   |       
+|       |   |       |   +---3c
+|       |   |       |   |       3c26e7a5b744df5ab7cb167281bec422d81200c1c062dacfeb69f5581680b762.svg
+|       |   |       |   |       
+|       |   |       |   +---3d
+|       |   |       |   |       3d2006711d4cf0010ce16f31a49a5a2fc2e47bc87bf4e5f48ca49098411a7055.svg
+|       |   |       |   |       
+|       |   |       |   +---44
+|       |   |       |   |       44582e0db5b0835aeb455646b18712a06999a8d89d8141f78b3ae3b3772f3c27.svg
+|       |   |       |   |       
+|       |   |       |   +---48
+|       |   |       |   |       4828e60247c1636f57b7446a314e7f599c12b53d40061cc851a1442004354fed.svg
+|       |   |       |   |       
+|       |   |       |   +---4b
+|       |   |       |   |       4b37e85c8445700f06a52a032fd66f4976c7c006252c46870cee8fc702c2e600.svg
+|       |   |       |   |       
+|       |   |       |   +---4d
+|       |   |       |   |       4d6661882847bb6ba89c42135ef60a25bd794387c9f95f5e7a1608eb468377e6.svg
+|       |   |       |   |       
+|       |   |       |   +---4e
+|       |   |       |   |       4e1fe7adf05ba33145e921f5cead67e17c086ab775516c54d87c2d09719e20a6.svg
+|       |   |       |   |       
+|       |   |       |   +---69
+|       |   |       |   |       69dbf44b3d90e7faf94f5813c530bc1d12f22e773ce4e901c33a159c8682edfb.svg
+|       |   |       |   |       
+|       |   |       |   +---74
+|       |   |       |   |       74fc14c76699725aa05b15868fe2f6b65c6bf4ba660b97296ee4b9966e17336c.svg
+|       |   |       |   |       
+|       |   |       |   +---8b
+|       |   |       |   |       8b9b0b3f792de8a6ad54ee531bd8f2efba7a64189029519237d882b3724dbcfd.svg
+|       |   |       |   |       
+|       |   |       |   +---8f
+|       |   |       |   |       8ff7b29c130d220b5381194e89b4b9ca772eb10cb205d8e6d2260385cbdcab07.svg
+|       |   |       |   |       
+|       |   |       |   +---90
+|       |   |       |   |       90cf7bd8432d0199fb2b3450ca06d299a93f0d2f35c36d259e35268cff57f18b.svg
+|       |   |       |   |       
+|       |   |       |   +---91
+|       |   |       |   |       91231ff9ab6685fac02e3b2f8ec250c2c866b19be46ca7a195186b9c85e6fc69.svg
+|       |   |       |   |       
+|       |   |       |   +---96
+|       |   |       |   |       96c5c4dea434a213282058e11a9e24a6642c8305ba6371ece577f7d296c49e95.svg
+|       |   |       |   |       
+|       |   |       |   +---9e
+|       |   |       |   |       9efab62721cfd0dc3273258ab3766da2dfcb3602cf5fd534cc4d8731bdeb5eb8.svg
+|       |   |       |   |       
+|       |   |       |   +---a3
+|       |   |       |   |       a37d07fe30048d3ae9db9a02c8c16da029bb44a586c5adaea2a1ce7be2c9d904.svg
+|       |   |       |   |       
+|       |   |       |   +---a7
+|       |   |       |   |       a7056a455639d1c7deec82ee787db24a0c1878e2792b4597709f0facf7cc7b35.svg
+|       |   |       |   |       a7f6415749a3297a04a2a5159d1542811f779562b547367d5e13a30e0ca5fc0f.svg
+|       |   |       |   |       
+|       |   |       |   +---ae
+|       |   |       |   |       ae4863bdae026314d5994730ad24730434f256c274d8431c53ed537393992be6.svg
+|       |   |       |   |       
+|       |   |       |   +---b3
+|       |   |       |   |       b3782288b3dd220c397069a826fb0b4bbbf47ae9e42d856c1da731616fc5827d.svg
+|       |   |       |   |       
+|       |   |       |   +---b5
+|       |   |       |   |       b5af80406b575529dfdb576328c3d93fd0ab834455c93bcc2fa4bc298e1c0e6a.svg
+|       |   |       |   |       
+|       |   |       |   +---b9
+|       |   |       |   |       b949c922b6ef9ffbf41eb853b99578624ca6f6475c4f13abe2995484b0348e5c.svg
+|       |   |       |   |       b953bd92180f4923735dc2054c6431bdd46ec62737f8347508973d49128c9edc.svg
+|       |   |       |   |       
+|       |   |       |   +---bc
+|       |   |       |   |       bc5b1930685dcf913a634d904c60bb84f882ebb0f0ae2cc95e96db7fa13fdd1e.svg
+|       |   |       |   |       
+|       |   |       |   +---c1
+|       |   |       |   |       c1b7ea8c03b42246fa2b63d17fbaf3fda395332b4b14b33f7bbe55aea3b099c3.svg
+|       |   |       |   |       
+|       |   |       |   +---c3
+|       |   |       |   |       c365f8181aaed632e1a66886502a0d26eef1c6e344bc89e730074006d17f96b1.svg
+|       |   |       |   |       
+|       |   |       |   +---c8
+|       |   |       |   |       c8d75cb0759127b80687e606d9b1c88365da7cf056374711881881897a52a825.svg
+|       |   |       |   |       
+|       |   |       |   +---c9
+|       |   |       |   |       c99390a38a47c236b70278937d8c1a8bbd8ed9a93faafbd8d96eafd52e93be32.svg
+|       |   |       |   |       
+|       |   |       |   +---cc
+|       |   |       |   |       cc52d03280b7034c8e3653d2748ebd489a873ef4bbc89cb187fbfcabfbbf6873.svg
+|       |   |       |   |       
+|       |   |       |   +---ce
+|       |   |       |   |       ce24da91fd9c729b2fd57fdae65d21e310be6cddb07fde060bd8d563224b8cea.svg
+|       |   |       |   |       
+|       |   |       |   +---d4
+|       |   |       |   |       d4347223667fdf00232c099b6282a64a438cad67405263c4d50abefe12eed3e2.svg
+|       |   |       |   |       
+|       |   |       |   +---d7
+|       |   |       |   |       d7b77d22488f836781746f181e28d93797959d60f3fa98cdfd0f748117bdde94.svg
+|       |   |       |   |       
+|       |   |       |   +---de
+|       |   |       |   |       dee91ddb90597936302cfd4341e409c87779ed9e0e8c8fde580e0af6cdace179.svg
+|       |   |       |   |       
+|       |   |       |   +---e6
+|       |   |       |   |       e6169e958b37ce8662817b0f3e0bf450a174742fafc527800e67f430738b4b63.svg
+|       |   |       |   |       e6910bd404b0f318c33cd0ca93b839239172da7820d552394d6f8ed8acb07337.svg
+|       |   |       |   |       
+|       |   |       |   +---e7
+|       |   |       |   |       e72997c0463372ded9a45918f8aebb377b3aa5d179fe630dc240004362f912a7.svg
+|       |   |       |   |       
+|       |   |       |   +---e8
+|       |   |       |   |       e86755d376aa8ebe9a236a2d5783c46ef5ca2437a9fafe90001d4df7b278e8cd.svg
+|       |   |       |   |       
+|       |   |       |   +---f0
+|       |   |       |   |       f0e20f958a36947c7476d2088883df374855bacd08c88e9f8ffdb5c1d9da8c1a.svg
+|       |   |       |   |       
+|       |   |       |   +---f1
+|       |   |       |   |       f1deb75fa21d3c47a6e7a45967b79fad2d053947066dc95322c5bcee1e9fe21c.svg
+|       |   |       |   |       
+|       |   |       |   \---fa
+|       |   |       |           fa14d67376ab5cd83eb6b5c8fbe6e2727069806dd68dbc46acb35fe83ed15968.svg
+|       |   |       |           
+|       |   |       \---licenses
+|       |   |               PROJECT-TEMPLATE-LICENSE.txt
+|       |   |               
+|       |   \---raw
+|       |       +---search
+|       |       |       0001_hh_requests_ML_area_1_d84917ee0590_page_000.json
+|       |       |       0002_hh_requests_Machine_Learning_Engineer_area_1_e9c73a284996_page_000.json
+|       |       |       
+|       |       \---vacancies
+|       |               131546356_54489df58a17.json
+|       |               135828271_4be0d5dc5b31.json
+|       |               135897884_10efd75e992e.json
+|       |               135981347_25280de49a38.json
+|       |               136121003_f3cbd059f54f.json
+|       |               136134777_7d852a0a4181.json
+|       |               136260841_682a99b5eb8e.json
+|       |               136344624_b95c6cb459c8.json
+|       |               136442922_1175bf75099f.json
+|       |               136448381_ffe00cb33cd7.json
+|       |               136453729_1edcb1fd6327.json
+|       |               136460097_677ed97bf24c.json
+|       |               136464200_5a453b2fa20a.json
+|       |               
+|       \---20260820T162018509399Z_machine_learning_engineer
+|           |   alignment_ledger.json
+|           |   boilerplate_report.json
+|           |   duplicates.json
+|           |   evidence.json
+|           |   excluded_evidence.json
+|           |   grade_conflicts.json
+|           |   grade_decisions.json
+|           |   phrase_candidates.json
+|           |   phrase_evidence.json
+|           |   review_decisions_template.json
+|           |   review_report.html
+|           |   review_report.json
+|           |   scoring_components.json
+|           |   unclassified.json
+|           |   vacancy_versions.json
+|           |   
+|           +---input
+|           |       profession_config.json
+|           |       source_queries.json
+|           |       versions.json
+|           |       
+|           +---normalized
+|           |       135622617_0b457fb84672.json
+|           |       135828271_4be0d5dc5b31.json
+|           |       135851140_cb660849c35a.json
+|           |       135897884_10efd75e992e.json
+|           |       136260841_682a99b5eb8e.json
+|           |       136266371_176cde0163fa.json
+|           |       136323642_96a03386c7b5.json
+|           |       136344624_b95c6cb459c8.json
+|           |       136394806_29b10b4f47c1.json
+|           |       136448381_ffe00cb33cd7.json
+|           |       136460097_677ed97bf24c.json
+|           |       136464200_5a453b2fa20a.json
+|           |       
+|           +---output
+|           |   |   validation_report.json
+|           |   |   
+|           |   +---profession_graphs
+|           |   |       machine_learning_engineer_jun.json
+|           |   |       machine_learning_engineer_middle.json
+|           |   |       machine_learning_engineer_senior.json
+|           |   |       
+|           |   +---profession_graph_node_courses_2026-08-20
+|           |   |       course_dictionary.json
+|           |   |       coverage.json
+|           |   |       learning_resources.json
+|           |   |       
+|           |   \---profession_graph_node_images_2026-08-20
+|           |       |   image_dictionary.json
+|           |       |   
+|           |       +---images
+|           |       |   +---03
+|           |       |   |       03312bee2e657c9ed7249268b32925e7997647c62ffb3ce56d1cc6e61404fa41.svg
+|           |       |   |       
+|           |       |   +---06
+|           |       |   |       0642a7b0f3466de53f8acd4fd3d71105f567d8ca4feae5e070e2c4d814e8ced3.svg
+|           |       |   |       
+|           |       |   +---0c
+|           |       |   |       0c03e3faaef073c59e48370a7abceaf35a8f9d49e9dcac105593d477b9818b39.svg
+|           |       |   |       
+|           |       |   +---18
+|           |       |   |       18885f27b5af9012df19e496460f9294d5ab76128824c6f993787004f6d9a7db.svg
+|           |       |   |       
+|           |       |   +---19
+|           |       |   |       197b0ff11cd452f01099e7386c8e45bc2d614da5a7bb8bc8daef5fdf8bf1fe83.svg
+|           |       |   |       
+|           |       |   +---1b
+|           |       |   |       1b817f9efc97800ade118b300e81cf706cc8936907ddfe6bbda87c4d7ed4a98a.svg
+|           |       |   |       
+|           |       |   +---20
+|           |       |   |       20f3bd11a0565a60adc35f9199e889c70eb841db6935eb8143827978bdba316a.svg
+|           |       |   |       
+|           |       |   +---24
+|           |       |   |       24564f4f168ee406e5f86d690ade31f0a00341530cf7fc04d01f729ceb05f817.svg
+|           |       |   |       
+|           |       |   +---27
+|           |       |   |       2788e71f1dccdd27caeda5452ad619442599582fddf005994d550f4b504c7b7d.svg
+|           |       |   |       
+|           |       |   +---2d
+|           |       |   |       2dd9eb7d9f0c11864fe058aaa0f3fbae5b1887555c9bc1f9ff84877d75f446a5.svg
+|           |       |   |       
+|           |       |   +---3b
+|           |       |   |       3b456fbcbd6a1d97aaf275630ed21068d574960f0de389802c994020ef5f628e.svg
+|           |       |   |       
+|           |       |   +---3c
+|           |       |   |       3c26e7a5b744df5ab7cb167281bec422d81200c1c062dacfeb69f5581680b762.svg
+|           |       |   |       
+|           |       |   +---3d
+|           |       |   |       3d2006711d4cf0010ce16f31a49a5a2fc2e47bc87bf4e5f48ca49098411a7055.svg
+|           |       |   |       
+|           |       |   +---44
+|           |       |   |       44582e0db5b0835aeb455646b18712a06999a8d89d8141f78b3ae3b3772f3c27.svg
+|           |       |   |       
+|           |       |   +---48
+|           |       |   |       4828e60247c1636f57b7446a314e7f599c12b53d40061cc851a1442004354fed.svg
+|           |       |   |       
+|           |       |   +---4b
+|           |       |   |       4b37e85c8445700f06a52a032fd66f4976c7c006252c46870cee8fc702c2e600.svg
+|           |       |   |       
+|           |       |   +---4d
+|           |       |   |       4d6661882847bb6ba89c42135ef60a25bd794387c9f95f5e7a1608eb468377e6.svg
+|           |       |   |       
+|           |       |   +---4e
+|           |       |   |       4e1fe7adf05ba33145e921f5cead67e17c086ab775516c54d87c2d09719e20a6.svg
+|           |       |   |       
+|           |       |   +---69
+|           |       |   |       69dbf44b3d90e7faf94f5813c530bc1d12f22e773ce4e901c33a159c8682edfb.svg
+|           |       |   |       
+|           |       |   +---6a
+|           |       |   |       6ac6fcf23984f4121368310faa8af65fc3a405079491886830845cfad0f43db0.svg
+|           |       |   |       
+|           |       |   +---74
+|           |       |   |       74fc14c76699725aa05b15868fe2f6b65c6bf4ba660b97296ee4b9966e17336c.svg
+|           |       |   |       
+|           |       |   +---86
+|           |       |   |       86f4802c0d19a38df80e835e651d553361f3c51511644a48e21b4e76c7422de3.svg
+|           |       |   |       
+|           |       |   +---8b
+|           |       |   |       8b9b0b3f792de8a6ad54ee531bd8f2efba7a64189029519237d882b3724dbcfd.svg
+|           |       |   |       
+|           |       |   +---8f
+|           |       |   |       8ff7b29c130d220b5381194e89b4b9ca772eb10cb205d8e6d2260385cbdcab07.svg
+|           |       |   |       
+|           |       |   +---90
+|           |       |   |       90cf7bd8432d0199fb2b3450ca06d299a93f0d2f35c36d259e35268cff57f18b.svg
+|           |       |   |       
+|           |       |   +---96
+|           |       |   |       96c5c4dea434a213282058e11a9e24a6642c8305ba6371ece577f7d296c49e95.svg
+|           |       |   |       
+|           |       |   +---9e
+|           |       |   |       9efab62721cfd0dc3273258ab3766da2dfcb3602cf5fd534cc4d8731bdeb5eb8.svg
+|           |       |   |       
+|           |       |   +---a3
+|           |       |   |       a37d07fe30048d3ae9db9a02c8c16da029bb44a586c5adaea2a1ce7be2c9d904.svg
+|           |       |   |       
+|           |       |   +---a7
+|           |       |   |       a7056a455639d1c7deec82ee787db24a0c1878e2792b4597709f0facf7cc7b35.svg
+|           |       |   |       a7f6415749a3297a04a2a5159d1542811f779562b547367d5e13a30e0ca5fc0f.svg
+|           |       |   |       
+|           |       |   +---ae
+|           |       |   |       ae4863bdae026314d5994730ad24730434f256c274d8431c53ed537393992be6.svg
+|           |       |   |       
+|           |       |   +---b3
+|           |       |   |       b3782288b3dd220c397069a826fb0b4bbbf47ae9e42d856c1da731616fc5827d.svg
+|           |       |   |       
+|           |       |   +---b5
+|           |       |   |       b5af80406b575529dfdb576328c3d93fd0ab834455c93bcc2fa4bc298e1c0e6a.svg
+|           |       |   |       
+|           |       |   +---b7
+|           |       |   |       b7da0bdee618c8f0ab37878b7f330e9a2036ee11d2e3281270b07a7e46b56cae.svg
+|           |       |   |       
+|           |       |   +---b9
+|           |       |   |       b949c922b6ef9ffbf41eb853b99578624ca6f6475c4f13abe2995484b0348e5c.svg
+|           |       |   |       b953bd92180f4923735dc2054c6431bdd46ec62737f8347508973d49128c9edc.svg
+|           |       |   |       
+|           |       |   +---bc
+|           |       |   |       bc5b1930685dcf913a634d904c60bb84f882ebb0f0ae2cc95e96db7fa13fdd1e.svg
+|           |       |   |       
+|           |       |   +---bf
+|           |       |   |       bfa97cfb590b2093ee41d9e44a906fbe19c3f809130727a37895afe9bad12756.svg
+|           |       |   |       
+|           |       |   +---c1
+|           |       |   |       c1b7ea8c03b42246fa2b63d17fbaf3fda395332b4b14b33f7bbe55aea3b099c3.svg
+|           |       |   |       
+|           |       |   +---c3
+|           |       |   |       c365f8181aaed632e1a66886502a0d26eef1c6e344bc89e730074006d17f96b1.svg
+|           |       |   |       
+|           |       |   +---c8
+|           |       |   |       c8d75cb0759127b80687e606d9b1c88365da7cf056374711881881897a52a825.svg
+|           |       |   |       
+|           |       |   +---c9
+|           |       |   |       c99390a38a47c236b70278937d8c1a8bbd8ed9a93faafbd8d96eafd52e93be32.svg
+|           |       |   |       
+|           |       |   +---cc
+|           |       |   |       cc52d03280b7034c8e3653d2748ebd489a873ef4bbc89cb187fbfcabfbbf6873.svg
+|           |       |   |       
+|           |       |   +---ce
+|           |       |   |       ce24da91fd9c729b2fd57fdae65d21e310be6cddb07fde060bd8d563224b8cea.svg
+|           |       |   |       
+|           |       |   +---cf
+|           |       |   |       cf78e5d56d67c0965f1183338316b3a574fc7049dd0466b2b74a16c16f7ea636.svg
+|           |       |   |       
+|           |       |   +---d1
+|           |       |   |       d1e9567da9a8a4b0c43da0791da1d2594cf5d7b78547fea132d06bccc1b06091.svg
+|           |       |   |       
+|           |       |   +---d4
+|           |       |   |       d4347223667fdf00232c099b6282a64a438cad67405263c4d50abefe12eed3e2.svg
+|           |       |   |       
+|           |       |   +---d7
+|           |       |   |       d7b77d22488f836781746f181e28d93797959d60f3fa98cdfd0f748117bdde94.svg
+|           |       |   |       
+|           |       |   +---de
+|           |       |   |       dee91ddb90597936302cfd4341e409c87779ed9e0e8c8fde580e0af6cdace179.svg
+|           |       |   |       
+|           |       |   +---e6
+|           |       |   |       e6169e958b37ce8662817b0f3e0bf450a174742fafc527800e67f430738b4b63.svg
+|           |       |   |       e6910bd404b0f318c33cd0ca93b839239172da7820d552394d6f8ed8acb07337.svg
+|           |       |   |       
+|           |       |   +---e7
+|           |       |   |       e72997c0463372ded9a45918f8aebb377b3aa5d179fe630dc240004362f912a7.svg
+|           |       |   |       
+|           |       |   +---e8
+|           |       |   |       e86755d376aa8ebe9a236a2d5783c46ef5ca2437a9fafe90001d4df7b278e8cd.svg
+|           |       |   |       e876abbe46eade2f0408a603254c0a5546fb6c28d4b74246252e1d59073ff6e3.svg
+|           |       |   |       
+|           |       |   +---eb
+|           |       |   |       eb795203421f87575938d8dcb93fe6ef760968c8eb1b6b85d9e437f46eb2b167.svg
+|           |       |   |       
+|           |       |   +---f0
+|           |       |   |       f0e20f958a36947c7476d2088883df374855bacd08c88e9f8ffdb5c1d9da8c1a.svg
+|           |       |   |       
+|           |       |   +---f1
+|           |       |   |       f1deb75fa21d3c47a6e7a45967b79fad2d053947066dc95322c5bcee1e9fe21c.svg
+|           |       |   |       
+|           |       |   +---f9
+|           |       |   |       f91178a8876ca242c99d2c2f25ea0637594c251414c0835c9e7faf8329723c4b.svg
+|           |       |   |       
+|           |       |   \---fa
+|           |       |           fa14d67376ab5cd83eb6b5c8fbe6e2727069806dd68dbc46acb35fe83ed15968.svg
+|           |       |           
+|           |       \---licenses
+|           |               PROJECT-TEMPLATE-LICENSE.txt
+|           |               
+|           \---raw
+|               +---search
+|               |       0001_hh_requests_ML_area_1_d84917ee0590_page_000.json
+|               |       0002_hh_requests_Machine_Learning_Engineer_area_1_e9c73a284996_page_000.json
+|               |       
+|               \---vacancies
+|                       135622617_0b457fb84672.json
+|                       135828271_4be0d5dc5b31.json
+|                       135851140_cb660849c35a.json
+|                       135897884_10efd75e992e.json
+|                       136260841_682a99b5eb8e.json
+|                       136266371_176cde0163fa.json
+|                       136323642_96a03386c7b5.json
+|                       136344624_b95c6cb459c8.json
+|                       136394806_29b10b4f47c1.json
+|                       136448381_ffe00cb33cd7.json
+|                       136460097_677ed97bf24c.json
+|                       136464200_5a453b2fa20a.json
+|                       
++---dictionaries
+|       aliases.json
+|       candidate_nodes.json
+|       canonical_nodes.json
+|       class_paths.json
+|       learning_resources.json
+|       professions.json
+|       
++---examples
+|       hh_profession_config.json
+|       profession_config.json
+|       sample_vacancies.json
+|       
++---rules
+|       grade_rules.json
+|       phrase_rules.json
+|       scoring.json
+|       split_rules.json
+|       
++---schemas
+|       profession_config.schema.json
+|       strict_graph.schema.json
+|       
++---src
+|   \---graph_service
+|       |   ai.py
+|       |   cli.py
+|       |   config.py
+|       |   models.py
+|       |   pipeline.py
+|       |   professions.py
+|       |   storage.py
+|       |   webapp.py
+|       |   __init__.py
+|       |   __main__.py
+|       |   
+|       +---analysis
+|       |   |   boilerplate.py
+|       |   |   duplicates.py
+|       |   |   review.py
+|       |   |   __init__.py
+|       |           
+|       +---assets
+|       |   |   svg_builder.py
+|       |   |   __init__.py
+|       |           
+|       +---collectors
+|       |   |   base.py
+|       |   |   file.py
+|       |   |   hh.py
+|       |   |   hh_public.py
+|       |   |   hh_requests.py
+|       |   |   trudvsem.py
+|       |   |   __init__.py
+|       |   |   
+|       |           
+|       +---extraction
+|       |   |   matcher.py
+|       |   |   phrases.py
+|       |   |   unknown_terms.py
+|       |   |   __init__.py
+|       |   |   
+|       |           
+|       +---graph
+|       |   |   builder.py
+|       |   |   grades.py
+|       |   |   scoring.py
+|       |   |   __init__.py
+|       |   |   
+|       |           
+|       +---learning
+|       |   |   base.py
+|       |   |   catalog.py
+|       |   |   providers.py
+|       |   |   __init__.py
+|       |   |   
+|       |           
+|       +---parsing
+|       |   |   text.py
+|       |   |   __init__.py
+|       |           
+|       +---validation
+|       |   |   contracts.py
+|       |   |   run.py
+|       |   |   __init__.py
+|       |           
+
+|               
++---tests
+|   |   test_ai.py
+|   |   test_analysis.py
+|   |   test_assets.py
+|   |   test_collection.py
+|   |   test_config.py
+|   |   test_grades.py
+|   |   test_graph_builder.py
+|   |   test_hh_public.py
+|   |   test_hh_requests.py
+|   |   test_history.py
+|   |   test_learning.py
+|   |   test_matcher.py
+|   |   test_parsing.py
+|   |   test_phrases.py
+|   |   test_pipeline.py
+|   |   test_professions.py
+|   |   test_review.py
+|   |   test_run_validation.py
+|   |   test_scoring.py
+|   |   test_trudvsem.py
+|   |   test_validation.py
+|   |   test_webapp.py
+|   |   
