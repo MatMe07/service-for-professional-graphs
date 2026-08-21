@@ -1,0 +1,39 @@
+{
+  "version": "1.1.0",
+  "resources": [
+    {
+      "node": "GitHub Actions",
+      "title": "GitHub Actions: основные понятия",
+      "url": "https://docs.github.com/en/actions/get-started/understand-github-actions",
+      "provider": "official",
+      "kind": "guide",
+      "language": "en",
+      "access": "free",
+      "level": "beginner"
+    },
+    {
+      "node": "Grafana",
+      "title": "Grafana Экспресс-курс Графана",
+      "url": "https://stepik.org/course/238905/",
+      "provider": "stepik",
+      "kind": "course",
+      "language": "ru",
+      "access": "free",
+      "level": "beginner",
+      "duration": "1ч",
+      "certificate": false
+    },
+    {
+      "node": "Prometheus",
+      "title": "Prometheus: все основы",
+      "url": "https://stepik.org/course/256593/",
+      "provider": "stepik",
+      "kind": "course",
+      "language": "ru",
+      "access": "free",
+      "level": "beginner",
+      "duration": "3-4 часов в неделю",
+      "certificate": false
+    }
+  ]
+}

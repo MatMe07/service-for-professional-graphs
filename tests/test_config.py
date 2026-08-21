@@ -64,6 +64,43 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ConfigError):
                 load_config(path)
 
+    def _write_config(self, root: Path, learning: dict) -> Path:
+        (root / "nodes.json").write_text('{"nodes": []}', encoding="utf-8")
+        config = {
+            "profession": {"name": "Тест", "slug": "test"},
+            "dictionaries": {"nodes": "nodes.json"},
+            "learning": learning,
+        }
+        path = root / "config.json"
+        path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+        return path
+
+    def test_accepts_auto_collect_defaults_and_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = load_config(self._write_config(root, {"auto_collect": True}))
+            self.assertTrue(config.learning["auto_collect"])
+            self.assertEqual(config.learning["providers"], ["stepik", "habr", "youtube"])
+            self.assertEqual(config.learning["provider_quotas"], {"stepik": 2, "habr": 1, "youtube": 1})
+
+    def test_rejects_unknown_learning_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(ConfigError):
+                load_config(self._write_config(root, {"providers": ["stepik", "twitter"]}))
+
+    def test_rejects_non_bool_auto_collect(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(ConfigError):
+                load_config(self._write_config(root, {"auto_collect": "yes"}))
+
+    def test_rejects_negative_provider_quota(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(ConfigError):
+                load_config(self._write_config(root, {"provider_quotas": {"habr": -1}}))
+
 
 if __name__ == "__main__":
     unittest.main()

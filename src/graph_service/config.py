@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .learning.providers import COLLECTOR_PROVIDERS
 from .models import Grade, NodeDefinition
 
 
@@ -222,9 +223,33 @@ def load_config(path: str | Path) -> AppConfig:
     if int(analysis["boilerplate_min_chars"]) < 20:
         raise ConfigError("analysis.boilerplate_min_chars должен быть не меньше 20.")
 
-    learning = {"max_per_node": 4, "check_links": False, **data.get("learning", {})}
+    learning = {
+        "max_per_node": 4,
+        "check_links": False,
+        "auto_collect": False,
+        "providers": ["stepik", "habr", "youtube"],
+        "provider_quotas": {"stepik": 2, "habr": 1, "youtube": 1},
+        "youtube_api_key_env": "YOUTUBE_API_KEY",
+        **data.get("learning", {}),
+    }
     if int(learning["max_per_node"]) < 1:
         raise ConfigError("learning.max_per_node должен быть положительным числом.")
+    if not isinstance(learning["auto_collect"], bool):
+        raise ConfigError("learning.auto_collect должен быть true или false.")
+    known_providers = set(COLLECTOR_PROVIDERS)
+    providers = learning["providers"]
+    if not isinstance(providers, list) or not providers or any(str(name) not in known_providers for name in providers):
+        raise ConfigError("learning.providers должен быть непустым списком из stepik, habr и youtube.")
+    if len(set(providers)) != len(providers):
+        raise ConfigError("learning.providers не должен содержать повторов.")
+    quotas = learning["provider_quotas"]
+    if not isinstance(quotas, dict) or any(key not in known_providers for key in quotas):
+        raise ConfigError("learning.provider_quotas должен быть объектом с ключами stepik, habr и youtube.")
+    for key, value in quotas.items():
+        if int(value) < 0:
+            raise ConfigError(f"learning.provider_quotas.{key} не может быть отрицательным.")
+    if not str(learning["youtube_api_key_env"]).strip():
+        raise ConfigError("learning.youtube_api_key_env должен содержать имя переменной окружения.")
     catalog_value = learning.get("catalog")
     learning_catalog_path = _resolve(config_path.parent, str(catalog_value)) if catalog_value else None
     if learning_catalog_path is not None and not learning_catalog_path.is_file():

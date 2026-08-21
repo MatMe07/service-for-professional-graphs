@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from graph_service.pipeline import run_pipeline
 
@@ -64,6 +66,75 @@ class PipelineTests(unittest.TestCase):
                 run_id="test-run-second",
             )
             self.assertEqual(second["vacancy_versions"]["unchanged"], 9)
+
+
+class FakeAggregator:
+    def __init__(
+        self,
+        providers=None,
+        max_per_node: int = 4,
+        quotas=None,
+        youtube_api_key_env: str = "YOUTUBE_API_KEY",
+    ) -> None:
+        pass
+
+    def collect_all(self, node_names):
+        return {name: [self._resource(name)] for name in node_names}
+
+    def to_catalog(self, collected):
+        resources = [item for items in collected.values() for item in items]
+        return {"version": "auto-test", "resources": resources}
+
+    @staticmethod
+    def _resource(node_name: str) -> dict:
+        video_id = hashlib.sha256(node_name.encode("utf-8")).hexdigest()[:11]
+        return {
+            "node": node_name,
+            "title": f"{node_name} tutorial",
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+            "provider": "youtube",
+            "kind": "video",
+            "language": "unknown",
+            "access": "free",
+            "level": "beginner",
+        }
+
+
+class AutoCollectPipelineTests(unittest.TestCase):
+    def test_auto_collect_saves_and_merges_materials(self) -> None:
+        config = json.loads((PROJECT_ROOT / "examples" / "profession_config.json").read_text(encoding="utf-8"))
+        config["dictionaries"]["nodes"] = str(PROJECT_ROOT / "dictionaries" / "canonical_nodes.json")
+        config["rules"] = {
+            "phrases": str(PROJECT_ROOT / "rules" / "phrase_rules.json"),
+            "splits": str(PROJECT_ROOT / "rules" / "split_rules.json"),
+        }
+        config["source"]["path"] = str(PROJECT_ROOT / "examples" / "sample_vacancies.json")
+        config["learning"]["catalog"] = str(PROJECT_ROOT / "dictionaries" / "learning_resources.json")
+        config["learning"]["auto_collect"] = True
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config_path = root / "config.json"
+            config_path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+            with patch("graph_service.learning.aggregator.LearningAggregator", FakeAggregator):
+                report = run_pipeline(
+                    config_path=config_path,
+                    runs_root=root / "runs",
+                    run_id="auto-collect-run",
+                )
+            self.assertTrue(report["learning"]["auto_collect"])
+            self.assertGreater(report["learning"]["collected_resources"], 0)
+            collected = json.loads(
+                (Path(report["run_directory"]) / "collected_learning_resources.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(collected["version"], "auto-test")
+            self.assertTrue(collected["resources"])
+            courses_path = next(
+                (Path(report["run_directory"]) / "output").glob("profession_graph_node_courses_*/course_dictionary.json")
+            )
+            courses = json.loads(courses_path.read_text(encoding="utf-8"))
+            self.assertTrue(courses["Python"])
+            self.assertTrue(courses["Python"][0].startswith("https://docs.python.org"))
+            self.assertTrue(any(url.startswith("https://www.youtube.com") for urls in courses.values() for url in urls))
 
 
 if __name__ == "__main__":

@@ -238,12 +238,30 @@ def run_pipeline(
                 }
             )
     image_dictionary = build_assets(image_root, nodes, used_names, image_contexts)
+    extra_learning_resources: list[dict[str, Any]] | None = None
+    auto_collect_enabled = bool(config.learning.get("auto_collect"))
+    if auto_collect_enabled:
+        from .learning.aggregator import LearningAggregator
+
+        aggregator = LearningAggregator(
+            providers=list(config.learning.get("providers", [])),
+            max_per_node=int(config.learning["max_per_node"]),
+            quotas=dict(config.learning.get("provider_quotas", {})),
+            youtube_api_key_env=str(config.learning.get("youtube_api_key_env", "YOUTUBE_API_KEY")),
+        )
+        collected_materials = aggregator.collect_all(sorted(used_names))
+        extra_learning_resources = [item for items in collected_materials.values() for item in items]
+        write_json(
+            storage.root / "collected_learning_resources.json",
+            aggregator.to_catalog(collected_materials),
+        )
     course_dictionary = build_course_dictionary(
         course_root,
         used_names,
         catalog_path=config.learning_catalog_path,
         max_per_node=int(config.learning["max_per_node"]),
         check_links=bool(config.learning["check_links"]),
+        extra_resources=extra_learning_resources,
     )
     learning_nodes_with_materials = sum(bool(urls) for urls in course_dictionary.values())
     learning_nodes_without_materials = sorted(
@@ -394,6 +412,8 @@ def run_pipeline(
             "nodes_total": len(course_dictionary),
             "nodes_with_materials": learning_nodes_with_materials,
             "nodes_without_materials": learning_nodes_without_materials,
+            "auto_collect": auto_collect_enabled,
+            "collected_resources": len(extra_learning_resources or []),
         },
         "graph_issues": graph_issues,
         "product_issues": product_issues,
