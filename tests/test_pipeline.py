@@ -7,23 +7,44 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from graph_service.pipeline import run_pipeline
+from graph_service.pipeline import _downgrade_sparse_root_issue, run_pipeline
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class PipelineTests(unittest.TestCase):
+    def test_sparse_root_is_warning_only_for_small_corpus(self) -> None:
+        issues = [
+            {"severity": "error", "path": "DevOps-инженер", "message": "У ветки 2 дочерних нод; целевое правило требует минимум 3."},
+            {"severity": "error", "path": "DevOps-инженер > CI/CD", "message": "У ветки 2 дочерних нод; целевое правило требует минимум 3."},
+        ]
+        _downgrade_sparse_root_issue(
+            issues,
+            root_name="DevOps-инженер",
+            leaf_count=13,
+            target_leaf_min=100,
+        )
+        self.assertEqual(issues[0]["severity"], "warning")
+        self.assertEqual(issues[1]["severity"], "error")
+
     def test_demo_run_creates_all_contract_layers(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             runs_root = Path(directory) / "runs"
+            progress_events = []
             report = run_pipeline(
                 config_path=PROJECT_ROOT / "examples" / "profession_config.json",
                 vacancies_path=PROJECT_ROOT / "examples" / "sample_vacancies.json",
                 runs_root=runs_root,
                 run_id="test-run",
+                progress_callback=progress_events.append,
             )
             self.assertEqual(report["status"], "ok_with_placeholders")
+            self.assertEqual(progress_events[-1]["progress"], 100)
+            self.assertEqual(
+                [event["progress"] for event in progress_events],
+                sorted(event["progress"] for event in progress_events),
+            )
             self.assertEqual(report["output_nodes"], 9)
             self.assertEqual(report["vacancy_versions"]["new"], 9)
             self.assertGreaterEqual(report["unknown_phrase_candidates"], 0)

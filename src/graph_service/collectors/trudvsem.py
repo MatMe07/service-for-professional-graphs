@@ -22,6 +22,7 @@ class TrudvsemCollector(Collector):
     """Automatic collector for the official public API of «Работа России»."""
 
     def __init__(self, source_config: dict[str, Any]) -> None:
+        self.progress_callback = source_config.get("_progress_callback")
         self.base_url = str(source_config.get("base_url", "https://opendata.trudvsem.ru/api/v1/vacancies")).rstrip("/")
         self.queries = [str(value).strip() for value in source_config.get("queries", []) if str(value).strip()]
         self.region_codes = [str(value).strip() for value in source_config.get("region_codes", []) if str(value).strip()] or [""]
@@ -48,6 +49,11 @@ class TrudvsemCollector(Collector):
         search_responses: list[dict[str, Any]] = []
         modified_from = (datetime.now(timezone.utc) - timedelta(days=self.period_days)).isoformat(timespec="seconds")
         request_number = 0
+        total_requests = max(
+            len(self.queries) * len(self.region_codes) * self.max_pages,
+            1,
+        )
+        self._progress(0, total_requests, "Начинаем поиск на портале «Работа России».")
         for query_index, query in enumerate(self.queries, start=1):
             for region_code in self.region_codes:
                 path = f"/region/{urllib.parse.quote(region_code, safe='')}" if region_code else ""
@@ -82,12 +88,31 @@ class TrudvsemCollector(Collector):
                         raw = wrapper.get("vacancy") if isinstance(wrapper, dict) else None
                         if isinstance(raw, dict):
                             vacancies.append(_normalize_vacancy(raw, query_id))
+                    self._progress(
+                        request_number,
+                        total_requests,
+                        (
+                            f"Получена страница {request_number} из {total_requests}; "
+                            f"вакансий найдено {len(vacancies)}."
+                        ),
+                    )
                     meta = response.get("meta", {})
                     total = _as_int(meta.get("total")) if isinstance(meta, dict) else None
                     if len(wrappers) < self.per_page or (total is not None and (page + 1) * self.per_page >= total):
                         break
         unique, duplicates = _deduplicate(vacancies)
+        self._progress(
+            total_requests,
+            total_requests,
+            f"Сбор завершён: найдено {len(unique)} уникальных вакансий.",
+        )
         return CollectionResult(vacancies=unique, search_responses=search_responses, duplicate_sightings=duplicates)
+
+    def _progress(self, current: int, total: int, message: str) -> None:
+        if callable(self.progress_callback):
+            self.progress_callback(
+                {"current": current, "total": total, "message": message}
+            )
 
     def _get_json(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.base_url}{path}?{urllib.parse.urlencode(params)}"

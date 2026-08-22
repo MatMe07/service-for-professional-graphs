@@ -5,6 +5,7 @@ import os
 import shutil
 import tempfile
 import threading
+import time
 import unittest
 import urllib.request
 from http.server import ThreadingHTTPServer
@@ -15,6 +16,16 @@ from graph_service.webapp import _latest_run_path, make_handler
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _wait_for_job(base: str, job_id: str) -> dict:
+    for _ in range(100):
+        with urllib.request.urlopen(f"{base}/api/jobs/{job_id}", timeout=5) as response:
+            job = json.loads(response.read().decode("utf-8"))
+        if job["status"] in {"completed", "error"}:
+            return job
+        time.sleep(0.01)
+    raise AssertionError("Фоновое задание не завершилось вовремя")
 
 
 class WebAppTests(unittest.TestCase):
@@ -61,6 +72,8 @@ class WebAppTests(unittest.TestCase):
             self.assertIn("2A. Вакансии HH.ru", page)
             self.assertIn("2B. Вакансии «Работа России»", page)
             self.assertIn("/api/run/hh-html", page)
+            self.assertIn("progress-panel", page)
+            self.assertIn("/api/jobs/", page)
             self.assertNotIn("Демо без HH", page)
             self.assertNotIn("Ручные ссылки HH", page)
             self.assertNotIn("HH через API", page)
@@ -96,8 +109,11 @@ class WebAppTests(unittest.TestCase):
                 )
                 with patch("graph_service.webapp.run_pipeline", return_value={"status": "ok"}) as mocked:
                     with urllib.request.urlopen(request, timeout=5) as response:
-                        report = json.loads(response.read().decode("utf-8"))
-                self.assertEqual(report["status"], "ok")
+                        accepted = json.loads(response.read().decode("utf-8"))
+                    job = _wait_for_job(base, accepted["job_id"])
+                self.assertEqual(job["status"], "completed")
+                self.assertEqual(job["progress"], 100)
+                self.assertEqual(job["result"]["status"], "ok")
                 config_path = Path(mocked.call_args.args[0])
                 generated = json.loads(config_path.read_text(encoding="utf-8"))
                 source = generated["source"]
@@ -133,8 +149,12 @@ class WebAppTests(unittest.TestCase):
                 )
                 with patch("graph_service.webapp.run_pipeline", return_value={"status": "ok"}) as mocked:
                     with urllib.request.urlopen(request, timeout=5) as response:
-                        report = json.loads(response.read().decode("utf-8"))
-                self.assertEqual(report["status"], "ok")
+                        accepted = json.loads(response.read().decode("utf-8"))
+                    job = _wait_for_job(
+                        f"http://127.0.0.1:{server.server_port}", accepted["job_id"]
+                    )
+                self.assertEqual(job["status"], "completed")
+                self.assertEqual(job["result"]["status"], "ok")
                 generated = json.loads(Path(mocked.call_args.args[0]).read_text(encoding="utf-8"))
                 self.assertEqual(generated["source"]["type"], "trudvsem")
                 self.assertEqual(generated["source"]["period_days"], 45)

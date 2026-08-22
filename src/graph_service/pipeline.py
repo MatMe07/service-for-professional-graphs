@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from . import __version__
 from .analysis import (
@@ -30,6 +30,9 @@ class PipelineError(RuntimeError):
     pass
 
 
+ProgressCallback = Callable[[dict[str, Any]], None]
+
+
 GRADE_FILE_SUFFIX: dict[Grade, str] = {
     "junior": "jun",
     "middle": "middle",
@@ -42,7 +45,9 @@ def run_pipeline(
     runs_root: str | Path,
     vacancies_path: str | Path | None = None,
     run_id: str | None = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> dict[str, Any]:
+    _report_progress(progress_callback, 2, "Подготовка", "Читаем настройки профессии.")
     config = load_config(config_path)
     dictionary_version, nodes = load_node_definitions(config.nodes_path)
     phrase_extractor = (
@@ -75,10 +80,19 @@ def run_pipeline(
         },
     )
 
-    collection = _collect(config, vacancies_path)
+    _report_progress(progress_callback, 5, "Сбор вакансий", "Подключаемся к источнику вакансий.")
+    collection = _collect(config, vacancies_path, progress_callback)
     vacancies = collection.vacancies
     if not vacancies:
         raise PipelineError("Сборщик не вернул ни одной вакансии.")
+    _report_progress(
+        progress_callback,
+        70,
+        "Обработка вакансий",
+        f"Собрано {len(vacancies)} вакансий. Выделяем требования и грейды.",
+        current=len(vacancies),
+        total=len(vacancies),
+    )
     for index, response in enumerate(collection.search_responses, start=1):
         storage.save_search_response(index, response)
 
@@ -179,6 +193,12 @@ def run_pipeline(
     if not included:
         raise PipelineError("После применения правил грейда не осталось вакансий.")
 
+    _report_progress(
+        progress_callback,
+        80,
+        "Построение графов",
+        f"Обработано {len(included)} подходящих вакансий.",
+    )
     counts, scoring_components = calculate_counts(included, vacancy_grades, all_evidence, config.scoring)
     graphs = build_grade_graphs(
         config.profession_name,
@@ -231,6 +251,17 @@ def run_pipeline(
     ]
     graph_similarity = _compare_grade_graphs(graphs)
 
+    # Малый корпус закономерно может дать меньше трёх верхнеуровневых веток.
+    # Это влияет на полноту графа, но не означает, что сбор или построение сломались.
+    for grade, issues in graph_issues.items():
+        _downgrade_sparse_root_issue(
+            issues,
+            root_name=config.profession_name,
+            leaf_count=leaf_counts[grade],
+            target_leaf_min=target_leaf_min,
+        )
+
+    _report_progress(progress_callback, 88, "Материалы", "Готовим изображения и учебные материалы.")
     date_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     image_root = storage.output_dir / f"profession_graph_node_images_{date_stamp}"
     course_root = storage.output_dir / f"profession_graph_node_courses_{date_stamp}"
@@ -446,6 +477,7 @@ def run_pipeline(
     report["status"] = "failed" if errors else "ok_with_placeholders"
     write_json(storage.output_dir / "validation_report.json", report)
     report["run_directory"] = str(storage.root)
+    _report_progress(progress_callback, 100, "Готово", "Отчёт построен и сохранён.")
     return report
 
 
@@ -471,6 +503,25 @@ def _compare_grade_graphs(graphs: dict[Grade, dict[str, Any]]) -> list[dict[str,
     return result
 
 
+def _downgrade_sparse_root_issue(
+    issues: list[dict[str, str]],
+    *,
+    root_name: str,
+    leaf_count: int,
+    target_leaf_min: int,
+) -> None:
+    if leaf_count >= target_leaf_min:
+        return
+    for issue in issues:
+        if (
+            issue["severity"] == "error"
+            and issue["path"] == root_name
+            and "дочерних нод" in issue["message"]
+        ):
+            issue["severity"] = "warning"
+            issue["message"] += " Для малого корпуса это предупреждение, а не ошибка запуска."
+
+
 def _leaf_paths(graph: dict[str, Any]) -> set[str]:
     paths: set[str] = set()
 
@@ -488,7 +539,38 @@ def _leaf_paths(graph: dict[str, Any]) -> set[str]:
     return paths
 
 
-def _collect(config: AppConfig, override_path: str | Path | None) -> CollectionResult:
+def _report_progress(
+    callback: ProgressCallback | None,
+    progress: int,
+    stage: str,
+    message: str,
+    *,
+    current: int | None = None,
+    total: int | None = None,
+) -> None:
+    if callback is None:
+        return
+    payload: dict[str, Any] = {
+        "progress": max(0, min(int(progress), 100)),
+        "stage": stage,
+        "message": message,
+    }
+    if current is not None:
+        payload["current"] = current
+    if total is not None:
+        payload["total"] = total
+    try:
+        callback(payload)
+    except Exception:
+        # Индикация в UI не должна останавливать основной конвейер.
+        pass
+
+
+def _collect(
+    config: AppConfig,
+    override_path: str | Path | None,
+    progress_callback: ProgressCallback | None = None,
+) -> CollectionResult:
     # Если передан override_path — используем файл
     if override_path is not None:
         return FileCollector(override_path).collect()
@@ -503,13 +585,29 @@ def _collect(config: AppConfig, override_path: str | Path | None) -> CollectionR
     if source_type == "hh_public_pages":
         return HHPublicPageCollector(config.source).collect()
     
+    def collector_progress(event: dict[str, Any]) -> None:
+        current = int(event.get("current", 0))
+        total = max(int(event.get("total", 1)), 1)
+        progress = 5 + round(64 * min(current / total, 1))
+        _report_progress(
+            progress_callback,
+            progress,
+            "Сбор вакансий",
+            str(event.get("message") or "Получаем вакансии."),
+            current=current,
+            total=total,
+        )
+
+    source_config = dict(config.source)
+    source_config["_progress_callback"] = collector_progress
+
     if source_type == "trudvsem":
-        return TrudvsemCollector(config.source).collect()
+        return TrudvsemCollector(source_config).collect()
     
     
     if source_type == "hh_requests":
         from .collectors.hh_requests import HHRequestsCollector
-        return HHRequestsCollector(config.source).collect()
+        return HHRequestsCollector(source_config).collect()
     
     if source_type == "file":
         source_path = config.source.get("path")

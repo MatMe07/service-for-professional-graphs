@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import uuid
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,6 +17,95 @@ from .validation import validate_run_directory
 
 
 MAX_BODY_SIZE = 1_000_000
+
+
+class _JobRegistry:
+    def __init__(self) -> None:
+        self._jobs: dict[str, dict[str, Any]] = {}
+        self._lock = threading.Lock()
+
+    def start(self, label: str, runner: Any) -> dict[str, Any]:
+        job_id = uuid.uuid4().hex
+        job = {
+            "job_id": job_id,
+            "status": "queued",
+            "progress": 0,
+            "stage": "В очереди",
+            "message": f"Готовим запуск: {label}.",
+        }
+        with self._lock:
+            self._prune_locked()
+            self._jobs[job_id] = job
+
+        def update(event: dict[str, Any]) -> None:
+            with self._lock:
+                current = self._jobs.get(job_id)
+                if current is None:
+                    return
+                next_progress = max(
+                    int(current.get("progress", 0)),
+                    max(0, min(int(event.get("progress", 0)), 100)),
+                )
+                current.update(event)
+                current["progress"] = next_progress
+                current["status"] = "running"
+
+        def work() -> None:
+            update(
+                {
+                    "progress": 1,
+                    "stage": "Запуск",
+                    "message": f"Запускаем: {label}.",
+                }
+            )
+            try:
+                report = runner(update)
+            except Exception as exc:  # pragma: no cover - tested through public API
+                with self._lock:
+                    current = self._jobs[job_id]
+                    current.update(
+                        {
+                            "status": "error",
+                            "stage": "Ошибка",
+                            "message": str(exc),
+                        }
+                    )
+                return
+            report_failed = report.get("status") == "failed"
+            with self._lock:
+                current = self._jobs[job_id]
+                current.update(
+                    {
+                        "status": "completed",
+                        "progress": 100,
+                        "stage": "Готово с замечаниями" if report_failed else "Готово",
+                        "message": (
+                            "Отчёт построен, но проверка нашла ошибки в его структуре."
+                            if report_failed
+                            else "Вакансии обработаны, отчёт готов."
+                        ),
+                        "result": report,
+                    }
+                )
+
+        threading.Thread(target=work, daemon=True, name=f"vacancy-job-{job_id[:8]}").start()
+        return self.get(job_id) or job
+
+    def get(self, job_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return dict(job) if job is not None else None
+
+    def _prune_locked(self) -> None:
+        if len(self._jobs) < 50:
+            return
+        removable = [
+            job_id
+            for job_id, job in self._jobs.items()
+            if job.get("status") in {"completed", "error"}
+        ]
+        for job_id in removable[: max(1, len(self._jobs) - 49)]:
+            self._jobs.pop(job_id, None)
 
 
 def serve_local_app(project_root: Path, host: str = "127.0.0.1", port: int = 8765) -> None:
@@ -35,6 +126,7 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
     root = project_root.resolve()
     runs_root = root / "data" / "runs"
     catalog_path = root / "dictionaries" / "professions.json"
+    jobs = _JobRegistry()
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "ProfessionalGraphs/0.9"
@@ -59,6 +151,14 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
                 return
             if path == "/api/runs":
                 self._send_json(HTTPStatus.OK, {"items": _list_runs(runs_root)})
+                return
+            if path.startswith("/api/jobs/"):
+                job_id = path.removeprefix("/api/jobs/")
+                job = jobs.get(job_id)
+                if job is None:
+                    self._send_json(HTTPStatus.NOT_FOUND, {"status": "error", "message": "Задание не найдено."})
+                else:
+                    self._send_json(HTTPStatus.OK, job)
                 return
             if path.startswith("/runs/"):
                 self._serve_run_file(path.removeprefix("/runs/"), runs_root)
@@ -132,8 +232,15 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
                 ),
             }
             write_json(config_path, generated)
-            report = run_pipeline(config_path, runs_root)
-            self._send_json(HTTPStatus.OK, report)
+            job = jobs.start(
+                "сбор вакансий с HH.ru",
+                lambda progress: run_pipeline(
+                    config_path,
+                    runs_root,
+                    progress_callback=progress,
+                ),
+            )
+            self._send_json(HTTPStatus.ACCEPTED, job)
 
         def _run_public_search(self, payload: dict[str, Any]) -> None:
             requested = str(payload.get("profession", "")).strip()
@@ -161,8 +268,15 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
                 "include_inactive": False,
             }
             write_json(config_path, generated)
-            report = run_pipeline(config_path, runs_root)
-            self._send_json(HTTPStatus.OK, report)
+            job = jobs.start(
+                "сбор вакансий с портала «Работа России»",
+                lambda progress: run_pipeline(
+                    config_path,
+                    runs_root,
+                    progress_callback=progress,
+                ),
+            )
+            self._send_json(HTTPStatus.ACCEPTED, job)
 
         def _validate_run(self, payload: dict[str, Any]) -> None:
             requested = str(payload.get("run_directory", "")).strip()
@@ -270,6 +384,7 @@ PAGE = r'''<!doctype html>
       --blue: #2357d8;
       --blue-dark: #173d9c;
       --green: #08785c;
+      --amber: #9a5a00;
       --border: #dbe3ef;
       --muted: #60708a;
     }
@@ -310,7 +425,16 @@ PAGE = r'''<!doctype html>
     .result-state { padding: 18px; border: 1px dashed #bdc9da; border-radius: 13px; background: #f8faff; color: #4b5c77; line-height: 1.55; }
     .result-state.busy { border-style: solid; border-color: #b9c9ef; background: #edf3ff; color: #254b9f; }
     .result-state.success { border-style: solid; border-color: #a9d9c9; background: #ecf8f4; color: #17664f; }
+    .result-state.warning { border-style: solid; border-color: #e8c57f; background: #fff8e8; color: #7c4a00; }
     .result-state.error { border-style: solid; border-color: #efb7b7; background: #fff0f0; color: #9c2f2f; }
+    .progress-panel { margin-bottom: 14px; padding: 16px 18px; border: 1px solid #b9c9ef; border-radius: 13px; background: #edf3ff; }
+    .progress-panel[hidden] { display: none; }
+    .progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 10px; color: #254b9f; }
+    .progress-stage { font-weight: 800; }
+    .progress-percent { font-size: 20px; font-variant-numeric: tabular-nums; }
+    .progress-track { height: 14px; overflow: hidden; border-radius: 999px; background: #d8e3fa; box-shadow: inset 0 1px 2px rgba(23,61,156,.12); }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2357d8, #38a4ff); transition: width .35s ease; }
+    .progress-message { margin: 10px 0 0; color: #405d95; font-size: 14px; line-height: 1.45; }
     .result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
     .result-link { display: none; padding: 9px 13px; border-radius: 9px; background: #17233a; color: white; font-weight: 750; text-decoration: none; }
     details { margin-top: 14px; }
@@ -323,6 +447,7 @@ PAGE = r'''<!doctype html>
       .secondary { width: 100%; }
     }
     @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .field.full { grid-column: auto; } }
+    @media (prefers-reduced-motion: reduce) { .progress-fill { transition: none; } }
   </style>
 </head>
 <body>
@@ -401,6 +526,16 @@ PAGE = r'''<!doctype html>
         </div>
         <button class="secondary run-button" onclick="validateRun()">Проверить последний запуск</button>
       </div>
+      <div id="progress-panel" class="progress-panel" hidden>
+        <div class="progress-head">
+          <span id="progress-stage" class="progress-stage">Подготовка</span>
+          <strong id="progress-percent" class="progress-percent">0%</strong>
+        </div>
+        <div id="progress-track" class="progress-track" role="progressbar" aria-label="Прогресс обработки" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <p id="progress-message" class="progress-message">Создаём задание…</p>
+      </div>
       <div id="result-state" class="result-state" aria-live="polite">Выберите источник и запустите сбор вакансий.</div>
       <div class="result-actions">
         <a id="report-link" class="result-link" target="_blank" rel="noopener">Открыть отчёт</a>
@@ -416,6 +551,12 @@ PAGE = r'''<!doctype html>
     const output = document.getElementById('output');
     const resultState = document.getElementById('result-state');
     const reportLink = document.getElementById('report-link');
+    const progressPanel = document.getElementById('progress-panel');
+    const progressTrack = document.getElementById('progress-track');
+    const progressFill = document.getElementById('progress-fill');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressStage = document.getElementById('progress-stage');
+    const progressMessage = document.getElementById('progress-message');
     const buttons = () => document.querySelectorAll('.run-button');
     const chosen = () => document.getElementById('profession').value;
 
@@ -428,15 +569,40 @@ PAGE = r'''<!doctype html>
       }
     }
 
-    function renderResult(data) {
-      const ok = data.status !== 'error' && data.status !== 'failed';
-      resultState.className = `result-state ${ok ? 'success' : 'error'}`;
-      resultState.textContent = ok
-        ? 'Операция завершена успешно.'
-        : (data.message || 'Операция завершилась с ошибкой.');
-      output.textContent = JSON.stringify(data, null, 2);
+    function showProgress(data) {
+      const progress = Math.max(0, Math.min(Number(data.progress || 0), 100));
+      progressPanel.hidden = false;
+      progressFill.style.width = `${progress}%`;
+      progressPercent.textContent = `${Math.round(progress)}%`;
+      progressStage.textContent = data.stage || 'Обработка';
+      progressMessage.textContent = data.message || 'Выполняем операцию…';
+      progressTrack.setAttribute('aria-valuenow', String(Math.round(progress)));
+    }
+
+    function errorMessage(data) {
+      if (data.message) return data.message;
+      const graphError = Object.values(data.graph_issues || {}).flat().find(issue => issue.severity === 'error');
+      const productError = (data.product_issues || []).find(issue => issue.severity === 'error');
+      return (graphError || productError || {}).message || 'Операция завершилась с ошибкой.';
+    }
+
+    function renderResult(data, completionMessage = '') {
       const runDirectory = data.run_directory || data.run_dir;
-      if (ok && runDirectory) {
+      const validationWarning = data.status === 'failed' && Boolean(runDirectory);
+      const ok = data.status !== 'error' && !validationWarning;
+      resultState.className = `result-state ${validationWarning ? 'warning' : (ok ? 'success' : 'error')}`;
+      if (validationWarning) {
+        const collected = data.vacancies_collected
+          ? ` по ${data.vacancies_collected} вакансиям`
+          : '';
+        resultState.textContent = completionMessage || `Отчёт построен${collected}, но проверка нашла замечания. Его можно открыть и изучить.`;
+      } else {
+        resultState.textContent = ok
+          ? (completionMessage || `Операция завершена успешно${data.vacancies_collected ? `: обработано вакансий — ${data.vacancies_collected}.` : '.'}`)
+          : errorMessage(data);
+      }
+      output.textContent = JSON.stringify(data, null, 2);
+      if (runDirectory) {
         const runId = runDirectory.replaceAll('\\', '/').split('/').filter(Boolean).pop();
         reportLink.href = `/runs/${encodeURIComponent(runId)}/review_report.html`;
         reportLink.style.display = 'inline-flex';
@@ -445,8 +611,46 @@ PAGE = r'''<!doctype html>
       }
     }
 
+    const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+    async function pollJob(jobId) {
+      while (true) {
+        const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+        const job = await response.json();
+        if (!response.ok) throw new Error(job.message || `HTTP ${response.status}`);
+        showProgress(job);
+        output.textContent = JSON.stringify(job, null, 2);
+        if (job.status === 'error') throw new Error(job.message || 'Сбор завершился с ошибкой.');
+        if (job.status === 'completed') {
+          renderResult(job.result || {status:'error', message:'Сервер не вернул результат.'}, job.message);
+          return job.result;
+        }
+        await wait(700);
+      }
+    }
+
+    async function startJob(path, body, message) {
+      setBusy(true, message);
+      showProgress({progress:0, stage:'Подготовка', message:'Создаём задание…'});
+      try {
+        const response = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        const job = await response.json();
+        if (!response.ok) throw new Error(job.message || `HTTP ${response.status}`);
+        if (!job.job_id) throw new Error('Сервер не вернул идентификатор задания.');
+        showProgress(job);
+        return await pollJob(job.job_id);
+      } catch (error) {
+        const data = {status:'error', message:String(error.message || error)};
+        renderResult(data);
+        return data;
+      } finally {
+        setBusy(false);
+      }
+    }
+
     async function post(path, body, message) {
       setBusy(true, message);
+      progressPanel.hidden = true;
       try {
         const response = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
         const data = await response.json();
@@ -485,7 +689,7 @@ PAGE = r'''<!doctype html>
       output.textContent = JSON.stringify(status, null, 2);
     }
 
-    const runHHHtml = () => post('/api/run/hh-html', {
+    const runHHHtml = () => startJob('/api/run/hh-html', {
       profession: chosen(),
       period_days: Number(document.getElementById('hh-period').value),
       max_pages: Number(document.getElementById('hh-pages').value),
@@ -493,7 +697,7 @@ PAGE = r'''<!doctype html>
       area: document.getElementById('hh-area').value
     }, 'Собираем и фильтруем вакансии HH.ru…');
 
-    const runPublicSearch = () => post('/api/run/public-search', {
+    const runPublicSearch = () => startJob('/api/run/public-search', {
       profession: chosen(),
       period_days: Number(document.getElementById('public-period').value),
       max_pages: Number(document.getElementById('public-pages').value)

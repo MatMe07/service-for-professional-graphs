@@ -439,6 +439,7 @@ class HHRequestsCollector(Collector):
     """Сбор вакансий HH через requests + BeautifulSoup."""
 
     def __init__(self, source_config: dict[str, Any]):
+        self.progress_callback = source_config.get("_progress_callback")
         self.queries = [
             str(q) for q in source_config.get("queries", []) if str(q).strip()
         ]
@@ -529,6 +530,11 @@ class HHRequestsCollector(Collector):
         inspected_ids: set[str] = set()
         captcha_detected = False
         limit_reached = False
+        total_candidates = max(
+            len(self.queries) * len(self.areas) * self.max_pages * self.per_page,
+            1,
+        )
+        self._progress(0, total_candidates, "Начинаем поиск вакансий на HH.ru.")
 
         for query_index, query in enumerate(self.queries, start=1):
             for area in self.areas:
@@ -596,6 +602,14 @@ class HHRequestsCollector(Collector):
                                 duplicates += 1
                                 continue
                             inspected_ids.add(vacancy_id)
+                            self._progress(
+                                len(inspected_ids),
+                                total_candidates,
+                                (
+                                    f"Проверяем вакансию {len(inspected_ids)}; "
+                                    f"подходящих найдено {len(collected_by_id)}."
+                                ),
+                            )
 
                             if len(inspected_ids) > 1:
                                 self._sleep(self.detail_delay)
@@ -651,6 +665,11 @@ class HHRequestsCollector(Collector):
                 break
 
         self._log(f"Всего собрано уникальных вакансий: {len(collected_by_id)}")
+        self._progress(
+            total_candidates,
+            total_candidates,
+            f"Сбор HH завершён: найдено {len(collected_by_id)} подходящих вакансий.",
+        )
 
         vacancies: list[Vacancy] = []
         for item in all_vacancies:
@@ -666,6 +685,12 @@ class HHRequestsCollector(Collector):
             search_responses=search_responses,
             duplicate_sightings=duplicates,
         )
+
+    def _progress(self, current: int, total: int, message: str) -> None:
+        if callable(self.progress_callback):
+            self.progress_callback(
+                {"current": current, "total": total, "message": message}
+            )
 
     def _get_vacancy_links(self, query: str, area: str, page: int) -> list[str] | None:
         """Загружает страницу поиска и возвращает ссылки на вакансии.
