@@ -101,6 +101,47 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ConfigError):
                 load_config(self._write_config(root, {"provider_quotas": {"habr": -1}}))
 
+    def test_accepts_valid_hh_requests_source(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "nodes.json").write_text('{"nodes": []}', encoding="utf-8")
+            config = {
+                "profession": {"name": "Python", "slug": "python"},
+                "dictionaries": {"nodes": "nodes.json"},
+                "source": {
+                    "type": "hh_requests",
+                    "queries": ["Python Developer"],
+                    "period_days": 30,
+                    "per_page": 20,
+                    "max_pages": 3,
+                    "max_vacancies": 50,
+                    "relevance_terms": ["Python Developer"],
+                    "min_title_match_ratio": 0.75,
+                },
+            }
+            path = root / "config.json"
+            path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+            loaded = load_config(path)
+            self.assertEqual(loaded.source["type"], "hh_requests")
+
+    def test_rejects_invalid_hh_requests_limits(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "nodes.json").write_text('{"nodes": []}', encoding="utf-8")
+            config = {
+                "profession": {"name": "Python", "slug": "python"},
+                "dictionaries": {"nodes": "nodes.json"},
+                "source": {
+                    "type": "hh_requests",
+                    "queries": ["Python Developer"],
+                    "period_days": 0,
+                },
+            }
+            path = root / "config.json"
+            path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+            with self.assertRaises(ConfigError):
+                load_config(path)
+
 
 if __name__ == "__main__":
     unittest.main()

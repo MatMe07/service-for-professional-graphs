@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-import random
 import re
 import time
-from datetime import datetime, timezone
+from collections.abc import Collection
+from datetime import date, datetime, timedelta, timezone
+from html import unescape
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,15 @@ from .file import _deduplicate
 from .hh_public import EXPERIENCE_IDS, _find_job_postings
 
 _SEARCH_URL = "https://hh.ru/search/vacancy"
-VACANCY_LINK_RE = re.compile(r"^(?:https?://(?:www\.)?hh\.ru)?(/vacancy/\d+)")
+VACANCY_LINK_RE = re.compile(
+    r"^(?:https?://(?!(?:adsrv|sovetnik)\.)(?:[a-z0-9-]+\.)?hh\.ru)?(/vacancy/\d+)",
+    re.IGNORECASE,
+)
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0.0.0 Safari/537.36"
+)
 
 RUSSIAN_MONTHS = {
     "января": 1,
@@ -40,6 +49,7 @@ RUSSIAN_MONTHS = {
 def _clean_text(value: str) -> str:
     if not value:
         return ""
+    value = unescape(value)
     value = re.sub(r"[\u00a0\u2009]", " ", value)
     value = re.sub(r"\s+", " ", value)
     return value.strip()
@@ -63,6 +73,13 @@ def _clean_vacancy_url(url: str) -> str:
     if match:
         return "https://hh.ru" + match.group(1)
     return url
+
+
+def _normalize_title(value: str) -> str:
+    """Нормализует название вакансии/профессии для консервативного сравнения."""
+    value = value.lower().replace("ё", "е")
+    value = re.sub(r"[^0-9a-zа-я+#.]+", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
 
 
 def _job_postings_from_soup(soup: BeautifulSoup) -> list[dict[str, Any]]:
@@ -430,6 +447,7 @@ class HHRequestsCollector(Collector):
         ] or ["1"]
         self.max_pages = int(source_config.get("max_pages", 1))
         self.per_page = min(max(int(source_config.get("per_page", 20)), 1), 100)
+        self.period_days = int(source_config.get("period_days", 30))
         self.retries = max(int(source_config.get("retries", 2)), 0)
         self.delay = max(float(source_config.get("request_interval_seconds", 3.0)), 0.1)
         self.detail_delay = max(
@@ -437,8 +455,33 @@ class HHRequestsCollector(Collector):
         )
         self.timeout = float(source_config.get("timeout_seconds", 30))
         self.max_vacancies = int(source_config.get("max_vacancies", 0) or 0)
-        # print("-"*20)
-        # print(self.max_vacancies)
+        raw_relevance_terms = source_config.get("relevance_terms", self.queries)
+        if isinstance(raw_relevance_terms, str):
+            raw_relevance_terms = [raw_relevance_terms]
+        if not isinstance(raw_relevance_terms, list):
+            raise ValueError("relevance_terms должен быть списком строк")
+        self.relevance_terms = list(
+            dict.fromkeys(
+                str(value).strip()
+                for value in raw_relevance_terms
+                if str(value).strip()
+            )
+        )
+        self.min_title_match_ratio = float(
+            source_config.get("min_title_match_ratio", 0.75)
+        )
+        self.user_agent = str(
+            source_config.get("user_agent") or DEFAULT_USER_AGENT
+        ).strip()
+
+        if not 1 <= self.max_pages <= 100:
+            raise ValueError("max_pages должен быть от 1 до 100")
+        if not 0 <= self.period_days <= 3650:
+            raise ValueError("period_days должен быть от 0 до 3650")
+        if self.max_vacancies < 0:
+            raise ValueError("max_vacancies не может быть отрицательным")
+        if not 0 < self.min_title_match_ratio <= 1:
+            raise ValueError("min_title_match_ratio должен быть больше 0 и не больше 1")
 
         self.extractor = HHDescriptionExtractor()
         self.canonical_terms: list[tuple[str, str]] = []
@@ -463,53 +506,38 @@ class HHRequestsCollector(Collector):
                     f"Не удалось загрузить canonical_nodes.json ({nodes_path}): {exc}"
                 )
         self.session = requests.Session()
-
-        self.user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0",
-        ]
-        self.ua_index = 0
+        self.session.headers.update(self.get_headers())
 
         if not self.queries:
             raise ValueError("Нужен хотя бы один search query")
 
     def get_headers(self) -> dict[str, str]:
-        self.ua_index = (self.ua_index + 1) % len(self.user_agents)
         return {
-            "User-Agent": self.user_agents[self.ua_index],
+            "User-Agent": self.user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             "Accept-Language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1",
             "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "cross-site",
-            "Sec-Fetch-User": "?1",
             "Cache-Control": "max-age=0",
-            "Referer": "https://hh.ru/",
         }
 
     def collect(self) -> CollectionResult:
         all_vacancies: list[dict[str, Any]] = []
         search_responses: list[dict[str, Any]] = []
+        collected_by_id: dict[str, dict[str, Any]] = {}
+        inspected_ids: set[str] = set()
         captcha_detected = False
-
-        # Лимит на один запрос
-        per_query_limit = self.max_vacancies if self.max_vacancies > 0 else None
+        limit_reached = False
 
         for query_index, query in enumerate(self.queries, start=1):
-            query_vacancies: list[dict[str, Any]] = []
-
             for area in self.areas:
                 for page in range(self.max_pages):
+                    if self._limit_reached(collected_by_id):
+                        limit_reached = True
+                        break
                     if page > 0 or query_index > 1:
-                        self._sleep(self.delay + random.uniform(0, 2))
+                        self._sleep(self.delay)
                     self._log(f"Запрос: '{query}' | area={area} | page={page}")
                     query_id = f"hh_requests:{query}:area:{area}"
 
@@ -530,15 +558,14 @@ class HHRequestsCollector(Collector):
                             )
                             break
 
-                        search_responses.append(
-                            self._search_response(
-                                query,
-                                area,
-                                page,
-                                query_id,
-                                links_found=len(vacancy_links),
-                            )
+                        page_response = self._search_response(
+                            query,
+                            area,
+                            page,
+                            query_id,
+                            links_found=len(vacancy_links),
                         )
+                        search_responses.append(page_response)
 
                         if not vacancy_links:
                             self._log(f"Ссылок не найдено на странице {page}")
@@ -546,34 +573,60 @@ class HHRequestsCollector(Collector):
 
                         self._log(f"Найдено {len(vacancy_links)} ссылок")
 
-                        for idx, link in enumerate(vacancy_links):
-                            # Проверяем лимит ДЛЯ ТЕКУЩЕГО ЗАПРОСА
-                            if (
-                                per_query_limit
-                                and len(query_vacancies) >= per_query_limit
-                            ):
+                        accepted = 0
+                        rejected = 0
+                        duplicates = 0
+                        for link in vacancy_links:
+                            if self._limit_reached(collected_by_id):
+                                limit_reached = True
                                 self._log(
-                                    f"Достигнут лимит {per_query_limit} для запроса '{query}'"
+                                    f"Достигнут общий лимит {self.max_vacancies} вакансий"
                                 )
                                 break
 
-                            if idx > 0:
-                                self._sleep(self.detail_delay + random.uniform(0, 1))
+                            vacancy_id = self._extract_vacancy_id(link)
+                            if vacancy_id in collected_by_id:
+                                existing = collected_by_id[vacancy_id]
+                                duplicate = dict(existing)
+                                duplicate["query_ids"] = [query_id]
+                                all_vacancies.append(duplicate)
+                                duplicates += 1
+                                continue
+                            if vacancy_id in inspected_ids:
+                                duplicates += 1
+                                continue
+                            inspected_ids.add(vacancy_id)
+
+                            if len(inspected_ids) > 1:
+                                self._sleep(self.detail_delay)
                             self._log(
-                                f"Загрузка вакансии {idx + 1}/{len(vacancy_links)}: {link}"
+                                f"Загрузка вакансии {len(inspected_ids)}: {link}"
                             )
                             vacancy_data = self._fetch_vacancy_page(link, query_id)
-                            if vacancy_data:
-                                query_vacancies.append(vacancy_data)
+                            if not vacancy_data:
+                                rejected += 1
+                                continue
+                            if not self._is_relevant_title(str(vacancy_data["title"])):
+                                self._log(
+                                    f"Пропущена нерелевантная вакансия: {vacancy_data['title']}"
+                                )
+                                rejected += 1
+                                continue
+                            if not self._is_within_period(
+                                str(vacancy_data.get("published_at", ""))
+                            ):
+                                self._log(
+                                    f"Пропущена вакансия вне периода: {vacancy_data['title']}"
+                                )
+                                rejected += 1
+                                continue
+                            all_vacancies.append(vacancy_data)
+                            collected_by_id[str(vacancy_data["id"])] = vacancy_data
+                            accepted += 1
 
-                        self._log(
-                            f"Для запроса '{query}' собрано: {len(query_vacancies)} вакансий"
-                        )
-
-                        # Если достигли лимита для этого запроса — переходим к следующему запросу
-                        if per_query_limit and len(query_vacancies) >= per_query_limit:
-                            self._log(f"Переход к следующему запросу")
-                            break
+                        page_response["accepted"] = accepted
+                        page_response["rejected"] = rejected
+                        page_response["duplicates"] = duplicates
 
                         if len(vacancy_links) < self.per_page:
                             break
@@ -592,21 +645,12 @@ class HHRequestsCollector(Collector):
                         )
                         break
 
-                if captcha_detected:
+                if captcha_detected or limit_reached:
                     break
-
-                # Если для этого запроса достигнут лимит — переходим к следующему
-                if per_query_limit and len(query_vacancies) >= per_query_limit:
-                    continue
-
-            # Добавляем вакансии этого запроса в общий список
-            all_vacancies.extend(query_vacancies)
-
-            if captcha_detected:
+            if captcha_detected or limit_reached:
                 break
 
-        self._log(f"Всего собрано вакансий: {len(all_vacancies)}")
-        self._log(f"Всего запросов обработано: {len(self.queries)}")
+        self._log(f"Всего собрано уникальных вакансий: {len(collected_by_id)}")
 
         vacancies: list[Vacancy] = []
         for item in all_vacancies:
@@ -635,7 +679,10 @@ class HHRequestsCollector(Collector):
             "page": page,
             "items_on_page": self.per_page,
             "ored_clusters": "true",
+            "order_by": "publication_time",
         }
+        if self.period_days:
+            params["period"] = self.period_days
         try:
             response = self._get_page(_SEARCH_URL, params=params)
         except RuntimeError as exc:
@@ -649,16 +696,29 @@ class HHRequestsCollector(Collector):
 
         soup = BeautifulSoup(html, "html.parser")
         links: list[str] = []
+        seen: set[str] = set()
+
+        def add_link(href: object) -> None:
+            if not isinstance(href, str) or not VACANCY_LINK_RE.match(href):
+                return
+            link = _clean_vacancy_url(self._absolute_link(href))
+            if link not in seen:
+                seen.add(link)
+                links.append(link)
+
         for elem in soup.find_all("a", {"data-qa": "serp-item__title"}):
-            href = elem.get("href")
-            if href and VACANCY_LINK_RE.match(href):
-                links.append(self._absolute_link(href))
+            add_link(elem.get("href"))
 
         if not links:
-            for elem in soup.find_all("a", class_=re.compile(r"vacancy-name-wrapper")):
-                href = elem.get("href")
-                if href and VACANCY_LINK_RE.match(href):
-                    links.append(self._absolute_link(href))
+            # Независимый от CSS-классов fallback: HH меняет имена классов чаще,
+            # чем формат прямых ссылок /vacancy/<id>.
+            for elem in soup.find_all("a", href=True):
+                add_link(elem.get("href"))
+
+        if not links:
+            # Последний fallback — структурированная разметка поисковой страницы.
+            for posting in _job_postings_from_soup(soup):
+                add_link(posting.get("url") or posting.get("sameAs"))
         return links
 
     def _fetch_vacancy_page(self, url: str, query_id: str) -> dict[str, Any] | None:
@@ -973,6 +1033,53 @@ class HHRequestsCollector(Collector):
         match = re.search(r"/vacancy/(\d+)", url)
         return match.group(1) if match else ""
 
+    def _is_relevant_title(self, title: str) -> bool:
+        """Оставляет вакансии, название которых соответствует профессии.
+
+        Слова могут идти в другом порядке (например, ``Developer Python``),
+        однако случайного совпадения только по одному слову недостаточно.
+        """
+        if not self.relevance_terms:
+            return True
+        normalized_title = _normalize_title(title)
+        if not normalized_title:
+            return False
+        padded_title = f" {normalized_title} "
+        title_tokens = set(normalized_title.split())
+        for raw_term in self.relevance_terms:
+            term = _normalize_title(raw_term)
+            if not term:
+                continue
+            if f" {term} " in padded_title:
+                return True
+            tokens = set(term.split())
+            if tokens and len(tokens & title_tokens) / len(tokens) >= self.min_title_match_ratio:
+                return True
+        return False
+
+    def _is_within_period(
+        self, published_at: str, *, now: datetime | None = None
+    ) -> bool:
+        """Дублирует серверный period-фильтр локальной проверкой даты."""
+        if not self.period_days or not published_at:
+            return True
+        now = now or datetime.now(timezone.utc)
+        try:
+            if re.fullmatch(r"\d{4}-\d{2}-\d{2}", published_at):
+                published_date = date.fromisoformat(published_at)
+                return published_date >= (now - timedelta(days=self.period_days)).date()
+            normalized = published_at.replace("Z", "+00:00")
+            published = datetime.fromisoformat(normalized)
+            if published.tzinfo is None:
+                published = published.replace(tzinfo=timezone.utc)
+            return published.astimezone(timezone.utc) >= now - timedelta(
+                days=self.period_days
+            )
+        except ValueError:
+            # Поисковый запрос уже ограничен параметром period; неизвестный формат
+            # даты не должен приводить к потере вакансии.
+            return True
+
     def _is_captcha(self, html: str) -> bool:
         html_lower = html.lower()
         # Явные признаки реального контента
@@ -1000,9 +1107,6 @@ class HHRequestsCollector(Collector):
             if indicator in html_lower:
                 self._log(f"Найден признак капчи: {indicator}")
                 return True
-        if len(html) < 500:
-            self._log(f"HTML слишком короткий ({len(html)} символов)")
-            return True
         return False
 
     def _to_vacancy(self, item: dict[str, Any]) -> Vacancy:
@@ -1081,8 +1185,10 @@ class HHRequestsCollector(Collector):
     def _log(message: str) -> None:
         print(f"[HH-Requests] {message}")
 
-    def _limit_reached(self, all_vacancies: list[dict[str, Any]]) -> bool:
-        return bool(self.max_vacancies and len(all_vacancies) >= self.max_vacancies)
+    def _limit_reached(self, unique_vacancies: Collection[object]) -> bool:
+        return bool(
+            self.max_vacancies and len(unique_vacancies) >= self.max_vacancies
+        )
 
 
 def parse_salary(value: str) -> dict[str, Any] | None:

@@ -7,20 +7,18 @@
   "grades": ["junior", "middle", "senior"],
   "source": {
     "type": "hh_requests",
-    "host": "hh.ru",
     "queries": ["ML инженер", "Machine Learning Engineer"],
+    "relevance_terms": ["ML-инженер", "ML Engineer", "Machine Learning Engineer", "ML инженер"],
+    "min_title_match_ratio": 0.75,
     "areas": ["1", "2"],
     "period_days": 30,
-    "date_chunk_days": 7,
     "per_page": 20,
-    "max_pages": 1,
-    "max_vacancies": 5,
+    "max_pages": 3,
+    "max_vacancies": 50,
     "retries": 3,
     "timeout_seconds": 30,
-    "user_agent": "ProfessionalGraphs/0.9 (mlprofessionalgraphs@gmail.com)",
-    "user_agent_env": "HH_USER_AGENT",
-    "token_env": "HH_API_TOKEN",
-    "include_inactive": false
+    "request_interval_seconds": 3.0,
+    "detail_interval_seconds": 1.0
   },
   "dictionaries": {
     "nodes": "../dictionaries/canonical_nodes.json"

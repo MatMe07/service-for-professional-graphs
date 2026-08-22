@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from graph_service.collectors.hh_requests import HHDescriptionExtractor, HHRequestsCollector, parse_salary
@@ -210,6 +211,8 @@ class HHRequestsCollectorTests(unittest.TestCase):
             "areas": ["1"],
             "max_pages": 1,
             "per_page": 20,
+            "period_days": 0,
+            "relevance_terms": [],
             "retries": 0,
             "request_interval_seconds": 0.1,
             "detail_interval_seconds": 0.0,
@@ -392,6 +395,102 @@ class HHRequestsCollectorTests(unittest.TestCase):
         self.assertTrue(collector._is_captcha("<html>проверка, что вы не робот</html>"))
         self.assertFalse(collector._is_captcha(SEARCH_HTML))
         self.assertFalse(collector._is_captcha(VACANCY_HTML))
+
+    def test_search_request_contains_period_and_publication_order(self) -> None:
+        collector = self._build_collector(period_days=30)
+        captured: dict[str, object] = {}
+
+        def fake_get(url: str, params: object = None, retries: object = None) -> _FakeResponse:
+            captured["params"] = params
+            return _FakeResponse(SEARCH_HTML)
+
+        with patch.object(collector, "_get_page", side_effect=fake_get):
+            links = collector._get_vacancy_links("Python разработчик", "1", 0)
+
+        self.assertEqual(links, ["https://hh.ru/vacancy/100"])
+        self.assertEqual(captured["params"]["period"], 30)
+        self.assertEqual(captured["params"]["order_by"], "publication_time")
+
+    def test_direct_link_fallback_does_not_depend_on_data_qa(self) -> None:
+        collector = self._build_collector()
+        html = '<html><body><a class="new-layout" href="/vacancy/321?from=search">Python</a></body></html>'
+        with patch.object(collector, "_get_page", return_value=_FakeResponse(html)):
+            links = collector._get_vacancy_links("Python разработчик", "1", 0)
+        self.assertEqual(links, ["https://hh.ru/vacancy/321"])
+
+    def test_max_vacancies_is_global_across_queries(self) -> None:
+        collector = self._build_collector(
+            queries=["Python разработчик", "Python Developer"],
+            max_vacancies=1,
+            per_page=2,
+        )
+        search_html = (
+            '<html><body><div class="vacancy-serp__vacancy">'
+            '<a data-qa="serp-item__title" href="/vacancy/100">Python</a>'
+            '<a data-qa="serp-item__title" href="/vacancy/101">Python</a>'
+            '</div></body></html>'
+        )
+        search_calls = 0
+
+        def fake_get(url: str, params: object = None, retries: object = None) -> _FakeResponse:
+            nonlocal search_calls
+            if "search/vacancy" in url:
+                search_calls += 1
+                return _FakeResponse(search_html)
+            return _FakeResponse(VACANCY_HTML)
+
+        with patch.object(collector, "_get_page", side_effect=fake_get):
+            result = collector.collect()
+
+        self.assertEqual(len(result.vacancies), 1)
+        self.assertEqual(search_calls, 1)
+
+    def test_irrelevant_title_is_rejected(self) -> None:
+        collector = self._build_collector(
+            relevance_terms=["Python разработчик", "Python Developer"]
+        )
+        irrelevant_page = VACANCY_HTML.replace(
+            "Python Developer", "Junior специалист BI"
+        )
+
+        def fake_get(url: str, params: object = None, retries: object = None) -> _FakeResponse:
+            if "search/vacancy" in url:
+                return _FakeResponse(SEARCH_HTML)
+            return _FakeResponse(irrelevant_page)
+
+        with patch.object(collector, "_get_page", side_effect=fake_get):
+            result = collector.collect()
+
+        self.assertEqual(result.vacancies, [])
+        self.assertEqual(result.search_responses[0]["rejected"], 1)
+
+    def test_reordered_relevance_terms_are_accepted(self) -> None:
+        collector = self._build_collector(
+            relevance_terms=["Python Developer"]
+        )
+        self.assertTrue(collector._is_relevant_title("Senior Developer Python"))
+        self.assertFalse(collector._is_relevant_title("Data Analyst (Python)"))
+
+    def test_period_is_enforced_locally(self) -> None:
+        collector = self._build_collector(period_days=30)
+        now = datetime(2026, 8, 22, tzinfo=timezone.utc)
+        self.assertTrue(
+            collector._is_within_period(
+                (now - timedelta(days=5)).isoformat(), now=now
+            )
+        )
+        self.assertFalse(
+            collector._is_within_period(
+                (now - timedelta(days=31)).isoformat(), now=now
+            )
+        )
+
+    def test_user_agent_is_stable_for_session(self) -> None:
+        collector = self._build_collector(user_agent="ProfessionalGraphs-Test/1.0")
+        self.assertEqual(collector.get_headers(), collector.get_headers())
+        self.assertEqual(
+            collector.get_headers()["User-Agent"], "ProfessionalGraphs-Test/1.0"
+        )
 
 
 if __name__ == "__main__":
