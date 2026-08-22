@@ -40,13 +40,36 @@ class WebAppTests(unittest.TestCase):
             with urllib.request.urlopen(f"{base}/api/professions", timeout=5) as response:
                 professions = json.loads(response.read().decode("utf-8"))
             self.assertEqual(status["storage"], "json_files")
+            self.assertTrue(status["hh_html_ready"])
+            self.assertTrue(status["public_search_ready"])
+            self.assertNotIn("hh_token_ready", status)
             self.assertEqual(len(professions["items"]), 15)
         finally:
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
 
-    def test_public_hh_endpoint_builds_keyless_config(self) -> None:
+    def test_page_exposes_only_two_collection_sources(self) -> None:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(ROOT))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{server.server_port}/", timeout=5
+            ) as response:
+                page = response.read().decode("utf-8")
+            self.assertIn("2A. Вакансии HH.ru", page)
+            self.assertIn("2B. Вакансии «Работа России»", page)
+            self.assertIn("/api/run/hh-html", page)
+            self.assertNotIn("Демо без HH", page)
+            self.assertNotIn("Ручные ссылки HH", page)
+            self.assertNotIn("HH через API", page)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
+
+    def test_hh_html_endpoint_builds_automatic_config(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             project_root = Path(temporary)
             (project_root / "dictionaries").mkdir()
@@ -59,11 +82,14 @@ class WebAppTests(unittest.TestCase):
                 body = json.dumps(
                     {
                         "profession": "python_developer",
-                        "urls": "https://hh.ru/vacancy/111\nhttps://hh.ru/vacancy/111",
+                        "period_days": 30,
+                        "max_pages": 3,
+                        "max_vacancies": 50,
+                        "area": "1",
                     }
                 ).encode("utf-8")
                 request = urllib.request.Request(
-                    f"{base}/api/run/hh-public",
+                    f"{base}/api/run/hh-html",
                     data=body,
                     headers={"Content-Type": "application/json"},
                     method="POST",
@@ -74,9 +100,14 @@ class WebAppTests(unittest.TestCase):
                 self.assertEqual(report["status"], "ok")
                 config_path = Path(mocked.call_args.args[0])
                 generated = json.loads(config_path.read_text(encoding="utf-8"))
-                self.assertEqual(generated["source"]["type"], "hh_public_pages")
-                self.assertEqual(generated["source"]["urls"], ["https://hh.ru/vacancy/111"])
-                self.assertEqual(generated["source"]["contact_email"], "mlprofessionalgraphs@gmail.com")
+                source = generated["source"]
+                self.assertEqual(source["type"], "hh_requests")
+                self.assertEqual(source["period_days"], 30)
+                self.assertEqual(source["max_pages"], 3)
+                self.assertEqual(source["max_vacancies"], 50)
+                self.assertEqual(source["areas"], ["1"])
+                self.assertIn("Python Developer", source["relevance_terms"])
+                self.assertTrue(source["nodes_path"].endswith("canonical_nodes.json"))
             finally:
                 server.shutdown()
                 server.server_close()

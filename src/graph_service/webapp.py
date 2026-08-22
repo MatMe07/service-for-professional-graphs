@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
-from .ai import ai_status
-from .collectors import HHCollector
-from .config import ConfigError, load_config
+from .config import ConfigError
 from .pipeline import PipelineError, run_pipeline
 from .professions import build_profession_config, load_profession_catalog, resolve_profession
 from .storage import write_json
@@ -47,6 +44,9 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
             if path == "/":
                 self._send_bytes(HTTPStatus.OK, PAGE.encode("utf-8"), "text/html; charset=utf-8")
                 return
+            if path == "/favicon.ico":
+                self._send_bytes(HTTPStatus.NO_CONTENT, b"", "image/x-icon")
+                return
             if path == "/api/status":
                 self._send_json(HTTPStatus.OK, _status(root, runs_root))
                 return
@@ -69,22 +69,8 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
             try:
                 payload = self._read_json()
                 path = urlsplit(self.path).path
-                if path == "/api/config/create":
-                    self._create_config(payload)
-                    return
-                if path == "/api/run/demo":
-                    report = run_pipeline(
-                        root / "examples" / "profession_config.json",
-                        runs_root,
-                        vacancies_path=root / "examples" / "sample_vacancies.json",
-                    )
-                    self._send_json(HTTPStatus.OK, report)
-                    return
-                if path == "/api/run/hh":
-                    self._run_hh(payload)
-                    return
-                if path == "/api/run/hh-public":
-                    self._run_hh_public(payload)
+                if path == "/api/run/hh-html":
+                    self._run_hh_html(payload)
                     return
                 if path == "/api/run/public-search":
                     self._run_public_search(payload)
@@ -101,54 +87,49 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
                     {"status": "error", "message": f"Внутренняя ошибка: {type(exc).__name__}"},
                 )
 
-        def _create_config(self, payload: dict[str, Any]) -> None:
+        def _run_hh_html(self, payload: dict[str, Any]) -> None:
             requested = str(payload.get("profession", "")).strip()
-            catalog = load_profession_catalog(catalog_path)
-            profession, confidence, matched = resolve_profession(catalog, requested)
-            output = root / "data" / "configs" / f"{profession['slug']}.json"
-            generated = build_profession_config(catalog, profession["slug"], output, root)
-            write_json(output, generated)
-            self._send_json(
-                HTTPStatus.OK,
-                {
-                    "status": "ok",
-                    "profession": profession,
-                    "matched_input": matched,
-                    "match_confidence": confidence,
-                    "output": str(output),
-                },
-            )
-
-        def _run_hh(self, payload: dict[str, Any]) -> None:
-            requested = str(payload.get("profession", "")).strip()
+            period_days = int(payload.get("period_days", 30))
+            max_pages = int(payload.get("max_pages", 3))
+            max_vacancies = int(payload.get("max_vacancies", 50))
+            area = str(payload.get("area", "1")).strip()
+            if not 1 <= period_days <= 3650:
+                raise ValueError("Период должен быть от 1 до 3650 дней.")
+            if not 1 <= max_pages <= 10:
+                raise ValueError("Можно выбрать от 1 до 10 страниц HH.")
+            if not 1 <= max_vacancies <= 500:
+                raise ValueError("Лимит должен быть от 1 до 500 вакансий.")
+            if not area.isdigit():
+                raise ValueError("Код региона HH должен быть числом.")
             catalog = load_profession_catalog(catalog_path)
             profession, _, _ = resolve_profession(catalog, requested)
-            config_path = root / "data" / "configs" / f"{profession['slug']}.json"
-            generated = build_profession_config(catalog, profession["slug"], config_path, root)
-            write_json(config_path, generated)
-            report = run_pipeline(config_path, runs_root)
-            self._send_json(HTTPStatus.OK, report)
-
-        def _run_hh_public(self, payload: dict[str, Any]) -> None:
-            requested = str(payload.get("profession", "")).strip()
-            supplied_urls = payload.get("urls", [])
-            if isinstance(supplied_urls, str):
-                supplied_urls = supplied_urls.splitlines()
-            if not isinstance(supplied_urls, list):
-                raise ValueError("Ссылки должны быть списком или строками по одной на строку.")
-            urls = list(dict.fromkeys(str(value).strip() for value in supplied_urls if str(value).strip()))
-            catalog = load_profession_catalog(catalog_path)
-            profession, _, _ = resolve_profession(catalog, requested)
-            config_path = root / "data" / "configs" / f"{profession['slug']}_hh_public.json"
+            config_path = root / "data" / "configs" / f"{profession['slug']}_hh_requests.json"
             generated = build_profession_config(catalog, profession["slug"], config_path, root)
             generated["source"] = {
-                "type": "hh_public_pages",
-                "urls": urls,
-                "contact_email": "mlprofessionalgraphs@gmail.com",
-                "contact_email_env": "HH_CONTACT_EMAIL",
+                "type": "hh_requests",
+                "queries": profession["queries"],
+                "relevance_terms": list(
+                    dict.fromkeys(
+                        [
+                            profession["name"],
+                            *profession.get("aliases", []),
+                            *profession["queries"],
+                        ]
+                    )
+                ),
+                "min_title_match_ratio": 0.75,
+                "areas": [area],
+                "period_days": period_days,
+                "per_page": 20,
+                "max_pages": max_pages,
+                "max_vacancies": max_vacancies,
                 "timeout_seconds": 30,
                 "retries": 2,
-                "request_interval_seconds": 1.0,
+                "request_interval_seconds": 3.0,
+                "detail_interval_seconds": 1.0,
+                "nodes_path": str(
+                    (root / "dictionaries" / "canonical_nodes.json").resolve()
+                ),
             }
             write_json(config_path, generated)
             report = run_pipeline(config_path, runs_root)
@@ -235,19 +216,11 @@ def make_handler(project_root: Path) -> type[BaseHTTPRequestHandler]:
 
 
 def _status(root: Path, runs_root: Path) -> dict[str, Any]:
-    config = load_config(root / "examples" / "profession_config.json")
-    configured_hh_contact = False
-    hh_config_path = root / "examples" / "hh_profession_config.json"
-    if hh_config_path.is_file():
-        configured_hh_contact = HHCollector(load_config(hh_config_path).source).live_contact_ready
     return {
         "status": "ok",
         "project_root": str(root),
-        "hh_user_agent_ready": configured_hh_contact or bool(os.getenv("HH_USER_AGENT", "").strip()),
-        "hh_token_ready": bool(os.getenv("HH_API_TOKEN", "").strip()),
-        "hh_public_pages_ready": True,
+        "hh_html_ready": True,
         "public_search_ready": True,
-        "ai": ai_status(config.ai),
         "runs": len(_list_runs(runs_root)),
         "storage": "json_files",
     }
@@ -287,100 +260,247 @@ PAGE = r'''<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Professional Graphs</title>
+  <title>Professional Graphs — сбор вакансий</title>
   <style>
-    :root { color-scheme: light; font-family: Inter, Arial, sans-serif; background: #f4f7fb; color: #172033; }
-    body { max-width: 980px; margin: 0 auto; padding: 32px 20px 60px; box-sizing: border-box; }
-    h1 { margin-bottom: 6px; } .lead { color: #536078; margin-top: 0; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    section { min-width: 0; background: white; border: 1px solid #dbe3ef; border-radius: 16px; padding: 18px; box-shadow: 0 8px 24px rgba(38,55,86,.06); }
-    label { display:block; font-weight: 600; margin-bottom: 7px; }
-    select, input, textarea, button { width: 100%; box-sizing: border-box; border-radius: 9px; padding: 10px 12px; font: inherit; }
-    select, input, textarea { border: 1px solid #b9c5d8; margin-bottom: 10px; background: white; }
-    textarea { min-height: 116px; resize: vertical; }
-    button { border: 0; background: #2457d6; color: white; font-weight: 700; cursor: pointer; margin-top: 6px; }
-    button:disabled { cursor: not-allowed; opacity: .48; }
-    button.secondary { background: #44546f; } button.warn { background: #a34b13; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #111827; color: #d8e5ff; padding: 16px; border-radius: 12px; min-height: 120px; }
-    .status { display:flex; gap:10px; flex-wrap:wrap; margin: 14px 0 20px; }
-    .pill { background:#e7eefc; border-radius:999px; padding:6px 10px; font-size:14px; }
-    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } body { padding: 22px 14px 40px; } }
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #f3f6fb;
+      color: #152238;
+      --blue: #2357d8;
+      --blue-dark: #173d9c;
+      --green: #08785c;
+      --border: #dbe3ef;
+      --muted: #60708a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top right, #e6eeff 0, transparent 34%), #f3f6fb; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 64px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 10px; font-size: clamp(32px, 5vw, 52px); letter-spacing: -.035em; }
+    h2 { margin-bottom: 8px; font-size: 22px; }
+    h3 { margin-bottom: 8px; font-size: 20px; }
+    .hero { margin-bottom: 26px; }
+    .eyebrow { margin-bottom: 9px; color: var(--blue); font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .lead { max-width: 720px; margin-bottom: 18px; color: var(--muted); font-size: 17px; line-height: 1.6; }
+    .status { display: flex; gap: 9px; flex-wrap: wrap; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid #cdd9ee; border-radius: 999px; background: rgba(255,255,255,.8); color: #40516d; font-size: 13px; font-weight: 700; }
+    .pill::before { width: 7px; height: 7px; border-radius: 50%; background: #21a179; content: ""; }
+    .card { min-width: 0; padding: 22px; border: 1px solid var(--border); border-radius: 18px; background: rgba(255,255,255,.94); box-shadow: 0 12px 32px rgba(42,63,99,.07); }
+    .profession { display: grid; grid-template-columns: 1fr minmax(260px, 420px); align-items: center; gap: 24px; margin-bottom: 18px; }
+    .profession p, .source-card > p, .result-copy { color: var(--muted); line-height: 1.55; }
+    .sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
+    .source-card { position: relative; overflow: hidden; }
+    .source-card::before { position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--blue); content: ""; }
+    .source-card.public::before { background: var(--green); }
+    .source-label { display: inline-block; margin-bottom: 14px; padding: 5px 9px; border-radius: 7px; background: #eaf0ff; color: var(--blue-dark); font-size: 12px; font-weight: 800; }
+    .public .source-label { background: #e4f5ef; color: #08654f; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .field.full { grid-column: 1 / -1; }
+    label { display: block; margin-bottom: 6px; color: #34435d; font-size: 13px; font-weight: 750; }
+    select, input, button { width: 100%; min-height: 44px; border-radius: 10px; font: inherit; }
+    select, input { padding: 9px 11px; border: 1px solid #b9c6d9; background: #fff; color: #17233a; }
+    select:focus, input:focus { outline: 3px solid rgba(35,87,216,.15); border-color: var(--blue); }
+    button { margin-top: 16px; padding: 10px 14px; border: 0; background: var(--blue); color: white; font-weight: 800; cursor: pointer; transition: transform .14s ease, background .14s ease; }
+    button:hover:not(:disabled) { transform: translateY(-1px); background: var(--blue-dark); }
+    button:disabled { cursor: wait; opacity: .55; }
+    .public button { background: var(--green); }
+    .secondary { width: auto; min-width: 220px; margin: 0; background: #43536c; }
+    .result-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
+    .result-state { padding: 18px; border: 1px dashed #bdc9da; border-radius: 13px; background: #f8faff; color: #4b5c77; line-height: 1.55; }
+    .result-state.busy { border-style: solid; border-color: #b9c9ef; background: #edf3ff; color: #254b9f; }
+    .result-state.success { border-style: solid; border-color: #a9d9c9; background: #ecf8f4; color: #17664f; }
+    .result-state.error { border-style: solid; border-color: #efb7b7; background: #fff0f0; color: #9c2f2f; }
+    .result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .result-link { display: none; padding: 9px 13px; border-radius: 9px; background: #17233a; color: white; font-weight: 750; text-decoration: none; }
+    details { margin-top: 14px; }
+    summary { color: #53647e; font-weight: 700; cursor: pointer; }
+    pre { max-height: 360px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 15px; border-radius: 11px; background: #111827; color: #dce8ff; font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    @media (max-width: 780px) {
+      main { width: min(100% - 24px, 1120px); padding-top: 28px; }
+      .profession, .sources { grid-template-columns: 1fr; }
+      .result-head { align-items: stretch; flex-direction: column; }
+      .secondary { width: 100%; }
+    }
+    @media (max-width: 480px) { .form-grid { grid-template-columns: 1fr; } .field.full { grid-column: auto; } }
   </style>
 </head>
 <body>
-  <h1>Professional Graphs</h1>
-  <p class="lead">Локальный запуск проекта. Секреты в браузере не показываются.</p>
-  <div class="status" id="status"></div>
-  <div class="grid">
-    <section>
-      <h2>1. Профессия</h2>
-      <label for="profession">Выберите профессию</label>
-      <select id="profession"></select>
-      <button onclick="createConfig()">Создать настройку</button>
+  <main>
+    <header class="hero">
+      <p class="eyebrow">Локальный сервис</p>
+      <h1>Professional Graphs</h1>
+      <p class="lead">Соберите реальные вакансии из одного из двух источников. Сервис выделит навыки, определит грейды и построит профессиональные графы Junior, Middle и Senior.</p>
+      <div class="status" id="status" aria-label="Состояние сервиса"></div>
+    </header>
+
+    <section class="card profession">
+      <div>
+        <h2>1. Выберите профессию</h2>
+        <p>Одна профессия применяется к поисковым фразам, фильтрации вакансий и итоговым графам.</p>
+      </div>
+      <div>
+        <label for="profession">Профессия</label>
+        <select id="profession" aria-label="Профессия"></select>
+      </div>
     </section>
-    <section>
-      <h2>2. Демо без HH</h2>
-      <p>Проверяет весь путь на локальных примерах ML-инженера.</p>
-      <button class="secondary" onclick="runDemo()">Запустить демо</button>
+
+    <div class="sources">
+      <section class="card source-card hh">
+        <span class="source-label">requests + BeautifulSoup</span>
+        <h2>2A. Вакансии HH.ru</h2>
+        <p>Автоматически разбирает публичную HTML-выдачу и структурированные данные JobPosting. API-ключ не нужен; при CAPTCHA сбор корректно остановится.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="hh-period">Период, дней</label>
+            <input id="hh-period" type="number" min="1" max="3650" value="30">
+          </div>
+          <div class="field">
+            <label for="hh-pages">Страниц × 20 ссылок</label>
+            <input id="hh-pages" type="number" min="1" max="10" value="3">
+          </div>
+          <div class="field">
+            <label for="hh-limit">Лимит вакансий</label>
+            <input id="hh-limit" type="number" min="1" max="500" value="50">
+          </div>
+          <div class="field">
+            <label for="hh-area">Регион HH</label>
+            <select id="hh-area">
+              <option value="1">Москва</option>
+              <option value="2">Санкт-Петербург</option>
+              <option value="113">Россия</option>
+            </select>
+          </div>
+        </div>
+        <button class="run-button" onclick="runHHHtml()">Собрать вакансии с HH.ru</button>
+      </section>
+
+      <section class="card source-card public">
+        <span class="source-label">Открытый государственный API</span>
+        <h2>2B. Вакансии «Работа России»</h2>
+        <p>Получает вакансии через открытый API портала «Работа России». Источник не требует регистрации и подходит как стабильный запасной вариант.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="public-period">Период, дней</label>
+            <input id="public-period" type="number" min="1" max="3650" value="30">
+          </div>
+          <div class="field">
+            <label for="public-pages">Страниц × 100 вакансий</label>
+            <input id="public-pages" type="number" min="1" max="10" value="2">
+          </div>
+        </div>
+        <button class="run-button" onclick="runPublicSearch()">Собрать с «Работы России»</button>
+      </section>
+    </div>
+
+    <section class="card result">
+      <div class="result-head">
+        <div>
+          <h2>3. Результат</h2>
+          <p class="result-copy">Здесь появится статус сбора и ссылка на читаемый отчёт последнего запуска.</p>
+        </div>
+        <button class="secondary run-button" onclick="validateRun()">Проверить последний запуск</button>
+      </div>
+      <div id="result-state" class="result-state" aria-live="polite">Выберите источник и запустите сбор вакансий.</div>
+      <div class="result-actions">
+        <a id="report-link" class="result-link" target="_blank" rel="noopener">Открыть отчёт</a>
+      </div>
+      <details id="technical-details">
+        <summary>Технические данные</summary>
+        <pre id="output">Состояние загружается...</pre>
+      </details>
     </section>
-    <section>
-      <h2>3. Автосбор без ключа</h2>
-      <p>Ищет вакансии автоматически через открытый API «Работа России». HH подключится после одобрения ключа.</p>
-      <label for="public-period">Период изменений, дней</label>
-      <input id="public-period" type="number" min="1" max="3650" value="30">
-      <label for="public-pages">Страниц по 100 вакансий на каждый запрос</label>
-      <input id="public-pages" type="number" min="1" max="10" value="2">
-      <button onclick="runPublicSearch()">Собрать вакансии автоматически</button>
-    </section>
-    <section>
-      <h2>4. Ручные ссылки HH</h2>
-      <p>Вставьте прямые публичные ссылки на вакансии, по одной на строку. Поиск на сайте программа не обходит. Для полного графа подберите вакансии Junior, Middle и Senior.</p>
-      <label for="hh-public-urls">Ссылки вида https://hh.ru/vacancy/123456</label>
-      <textarea id="hh-public-urls" placeholder="https://hh.ru/vacancy/123456"></textarea>
-      <button onclick="runHHPublic()">Собрать по публичным ссылкам</button>
-    </section>
-    <section>
-      <h2>5. HH через API</h2>
-      <p>Станет доступен после одобрения приложения и сохранения токена.</p>
-      <button id="hh-button" class="warn" onclick="runHH()">Собрать выбранную профессию</button>
-    </section>
-    <section>
-      <h2>6. Проверка результата</h2>
-      <p>Проверяет последний запуск, JSON, графы, SVG и связанные файлы.</p>
-      <button class="secondary" onclick="validateRun()">Проверить последний запуск</button>
-    </section>
-  </div>
-  <h2>Результат действия</h2>
-  <pre id="output">Загрузка состояния...</pre>
+  </main>
+
   <script>
     const output = document.getElementById('output');
-    async function api(path, body) {
-      output.textContent = 'Выполняется...';
-      const options = body === undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)};
-      const response = await fetch(path, options); const data = await response.json();
-      output.textContent = JSON.stringify(data, null, 2); return data;
-    }
-    async function load() {
-      const [status, professions] = await Promise.all([api('/api/status'), fetch('/api/professions').then(r=>r.json())]);
-      document.getElementById('status').innerHTML = [
-        `HH API-контакт: ${status.hh_user_agent_ready ? 'готов' : 'не задан'}`,
-        `HH токен: ${status.hh_token_ready ? 'готов' : 'ожидается'}`,
-        `Автосбор без ключа: готов`,
-        `Ручной HH: готов`,
-        `AI: ${status.ai.ready ? 'готов' : 'выключен'}`,
-        `Запусков: ${status.runs}`
-      ].map(x=>`<span class="pill">${x}</span>`).join('');
-      document.getElementById('hh-button').disabled = !status.hh_token_ready;
-      document.getElementById('profession').innerHTML = professions.items.map(p=>`<option value="${p.slug}">${p.name}</option>`).join('');
-    }
+    const resultState = document.getElementById('result-state');
+    const reportLink = document.getElementById('report-link');
+    const buttons = () => document.querySelectorAll('.run-button');
     const chosen = () => document.getElementById('profession').value;
-    const createConfig = () => api('/api/config/create', {profession:chosen()});
-    const runDemo = () => api('/api/run/demo', {});
-    const runHHPublic = () => api('/api/run/hh-public', {profession:chosen(), urls:document.getElementById('hh-public-urls').value});
-    const runPublicSearch = () => api('/api/run/public-search', {profession:chosen(), period_days:Number(document.getElementById('public-period').value), max_pages:Number(document.getElementById('public-pages').value)});
-    const runHH = () => api('/api/run/hh', {profession:chosen()});
-    const validateRun = () => api('/api/run/validate', {});
-    load().catch(error => output.textContent = String(error));
+
+    function setBusy(busy, message = '') {
+      buttons().forEach(button => button.disabled = busy);
+      if (busy) {
+        resultState.className = 'result-state busy';
+        resultState.textContent = message || 'Сбор запущен. Это может занять несколько минут…';
+        reportLink.style.display = 'none';
+      }
+    }
+
+    function renderResult(data) {
+      const ok = data.status !== 'error' && data.status !== 'failed';
+      resultState.className = `result-state ${ok ? 'success' : 'error'}`;
+      resultState.textContent = ok
+        ? 'Операция завершена успешно.'
+        : (data.message || 'Операция завершилась с ошибкой.');
+      output.textContent = JSON.stringify(data, null, 2);
+      const runDirectory = data.run_directory || data.run_dir;
+      if (ok && runDirectory) {
+        const runId = runDirectory.replaceAll('\\', '/').split('/').filter(Boolean).pop();
+        reportLink.href = `/runs/${encodeURIComponent(runId)}/review_report.html`;
+        reportLink.style.display = 'inline-flex';
+      } else {
+        reportLink.style.display = 'none';
+      }
+    }
+
+    async function post(path, body, message) {
+      setBusy(true, message);
+      try {
+        const response = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+        renderResult(data);
+        return data;
+      } catch (error) {
+        const data = {status:'error', message:String(error.message || error)};
+        renderResult(data);
+        return data;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function load() {
+      const [statusResponse, professionsResponse] = await Promise.all([
+        fetch('/api/status'), fetch('/api/professions')
+      ]);
+      const status = await statusResponse.json();
+      const professions = await professionsResponse.json();
+      const statusRoot = document.getElementById('status');
+      [`HH HTML-парсер готов`, `«Работа России» готова`, `Запусков: ${status.runs}`].forEach(text => {
+        const pill = document.createElement('span');
+        pill.className = 'pill';
+        pill.textContent = text;
+        statusRoot.appendChild(pill);
+      });
+      const select = document.getElementById('profession');
+      professions.items.forEach(profession => {
+        const option = document.createElement('option');
+        option.value = profession.slug;
+        option.textContent = profession.name;
+        select.appendChild(option);
+      });
+      output.textContent = JSON.stringify(status, null, 2);
+    }
+
+    const runHHHtml = () => post('/api/run/hh-html', {
+      profession: chosen(),
+      period_days: Number(document.getElementById('hh-period').value),
+      max_pages: Number(document.getElementById('hh-pages').value),
+      max_vacancies: Number(document.getElementById('hh-limit').value),
+      area: document.getElementById('hh-area').value
+    }, 'Собираем и фильтруем вакансии HH.ru…');
+
+    const runPublicSearch = () => post('/api/run/public-search', {
+      profession: chosen(),
+      period_days: Number(document.getElementById('public-period').value),
+      max_pages: Number(document.getElementById('public-pages').value)
+    }, 'Получаем вакансии с портала «Работа России»…');
+
+    const validateRun = () => post('/api/run/validate', {}, 'Проверяем файлы последнего запуска…');
+    load().catch(error => renderResult({status:'error', message:String(error)}));
   </script>
 </body>
 </html>'''
