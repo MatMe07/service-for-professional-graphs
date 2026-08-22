@@ -15,8 +15,10 @@ def build_course_dictionary(
     catalog_path: Path | None = None,
     max_per_node: int = 4,
     check_links: bool = False,
+    extra_resources: list[dict[str, Any]] | None = None,
 ) -> dict[str, list[str]]:
     resources = _load_catalog(catalog_path) if catalog_path is not None else []
+    resources += [item for item in (extra_resources or []) if isinstance(item, dict)]
     selected: dict[str, list[dict[str, Any]]] = {name: [] for name in sorted(node_names)}
     seen: dict[str, set[str]] = {name: set() for name in node_names}
     errors: list[dict[str, str]] = []

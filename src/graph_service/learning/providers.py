@@ -9,6 +9,8 @@ PROVIDER_DOMAINS = {
     "youtube": {"youtube.com", "www.youtube.com", "youtu.be"},
 }
 
+COLLECTOR_PROVIDERS = ("stepik", "habr", "youtube")
+
 
 def validate_provider(provider: str, url: str) -> None:
     if provider == "official":

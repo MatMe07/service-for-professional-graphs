@@ -205,6 +205,15 @@ def run_pipeline(
     used_names: set[str] = set()
     for graph in graphs.values():
         used_names.update(collect_leaf_names(graph))
+    
+    # Сохраняем список нод для учебных материалов
+    node_map = {node.name: node for node in nodes}
+    nodes_list = [
+        {"name": name, "path": node_map[name].path if name in node_map else []}
+        for name in sorted(used_names)
+    ]
+    write_json(storage.input_dir / "nodes.json", {"version": dictionary_version, "nodes": nodes_list})
+    
     leaf_counts = {grade: len(collect_leaf_names(graph)) for grade, graph in graphs.items()}
     target_leaf_min = int(config.graph.get("target_leaf_min", 100))
     target_leaf_max = int(config.graph.get("target_leaf_max", 180))
@@ -225,7 +234,6 @@ def run_pipeline(
     date_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     image_root = storage.output_dir / f"profession_graph_node_images_{date_stamp}"
     course_root = storage.output_dir / f"profession_graph_node_courses_{date_stamp}"
-    node_map = {node.name: node for node in nodes}
     image_contexts: dict[str, list[dict[str, Any]]] = {name: [] for name in used_names}
     for grade, grade_counts in counts.items():
         for name in sorted(set(grade_counts) & used_names):
@@ -238,12 +246,30 @@ def run_pipeline(
                 }
             )
     image_dictionary = build_assets(image_root, nodes, used_names, image_contexts)
+    extra_learning_resources: list[dict[str, Any]] | None = None
+    auto_collect_enabled = bool(config.learning.get("auto_collect"))
+    if auto_collect_enabled:
+        from .learning.aggregator import LearningAggregator
+
+        aggregator = LearningAggregator(
+            providers=list(config.learning.get("providers", [])),
+            max_per_node=int(config.learning["max_per_node"]),
+            quotas=dict(config.learning.get("provider_quotas", {})),
+            youtube_api_key_env=str(config.learning.get("youtube_api_key_env", "YOUTUBE_API_KEY")),
+        )
+        collected_materials = aggregator.collect_all(sorted(used_names))
+        extra_learning_resources = [item for items in collected_materials.values() for item in items]
+        write_json(
+            storage.root / "collected_learning_resources.json",
+            aggregator.to_catalog(collected_materials),
+        )
     course_dictionary = build_course_dictionary(
         course_root,
         used_names,
         catalog_path=config.learning_catalog_path,
         max_per_node=int(config.learning["max_per_node"]),
         check_links=bool(config.learning["check_links"]),
+        extra_resources=extra_learning_resources,
     )
     learning_nodes_with_materials = sum(bool(urls) for urls in course_dictionary.values())
     learning_nodes_without_materials = sorted(
@@ -394,6 +420,8 @@ def run_pipeline(
             "nodes_total": len(course_dictionary),
             "nodes_with_materials": learning_nodes_with_materials,
             "nodes_without_materials": learning_nodes_without_materials,
+            "auto_collect": auto_collect_enabled,
+            "collected_resources": len(extra_learning_resources or []),
         },
         "graph_issues": graph_issues,
         "product_issues": product_issues,
@@ -461,18 +489,35 @@ def _leaf_paths(graph: dict[str, Any]) -> set[str]:
 
 
 def _collect(config: AppConfig, override_path: str | Path | None) -> CollectionResult:
+    # Если передан override_path — используем файл
     if override_path is not None:
         return FileCollector(override_path).collect()
-    if config.source.get("type", "file") == "hh":
+    
+    # Определяем тип источника
+    source_type = config.source.get("type", "file")
+    # print(config)
+    
+    if source_type == "hh":
         return HHCollector(config.source).collect()
-    if config.source.get("type") == "hh_public_pages":
+    
+    if source_type == "hh_public_pages":
         return HHPublicPageCollector(config.source).collect()
-    if config.source.get("type") == "trudvsem":
+    
+    if source_type == "trudvsem":
         return TrudvsemCollector(config.source).collect()
-    source_path = config.source.get("path")
-    if not source_path:
-        raise PipelineError("Для source.type=file нужен source.path или параметр --vacancies.")
-    candidate = Path(str(source_path))
-    if not candidate.is_absolute():
-        candidate = (config.path.parent / candidate).resolve()
-    return FileCollector(candidate).collect()
+    
+    
+    if source_type == "hh_requests":
+        from .collectors.hh_requests import HHRequestsCollector
+        return HHRequestsCollector(config.source).collect()
+    
+    if source_type == "file":
+        source_path = config.source.get("path")
+        if not source_path:
+            raise PipelineError("Для source.type=file нужен source.path или параметр --vacancies.")
+        candidate = Path(str(source_path))
+        if not candidate.is_absolute():
+            candidate = (config.path.parent / candidate).resolve()
+        return FileCollector(candidate).collect()
+    
+    raise PipelineError(f"Неизвестный тип источника: {source_type}")

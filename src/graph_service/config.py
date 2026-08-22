@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .learning.providers import COLLECTOR_PROVIDERS
 from .models import Grade, NodeDefinition
 
 
@@ -94,8 +95,8 @@ def load_config(path: str | Path) -> AppConfig:
 
     source = data.get("source", {})
     source_type = source.get("type", "file")
-    if source_type not in {"file", "hh", "hh_public_pages", "trudvsem"}:
-        raise ConfigError("source.type должен быть file, hh, hh_public_pages или trudvsem.")
+    if source_type not in {"file", "hh", "hh_public_pages", "trudvsem", "hh_requests"}:
+        raise ConfigError("source.type должен быть file, hh, hh_public_pages, trudvsem или hh_requests.")
     if source_type == "hh_public_pages":
         public_urls = source.get("urls", [])
         if not isinstance(public_urls, list) or not 1 <= len(public_urls) <= 100:
@@ -117,6 +118,26 @@ def load_config(path: str | Path) -> AppConfig:
             raise ConfigError("Для trudvsem source.per_page должен быть от 1 до 100.")
         if not 1 <= int(source.get("max_pages", 2)) <= 100:
             raise ConfigError("Для trudvsem source.max_pages должен быть от 1 до 100.")
+    if source_type == "hh_requests":
+        queries = source.get("queries", [])
+        if not isinstance(queries, list) or not queries:
+            raise ConfigError("Для hh_requests нужен непустой список source.queries.")
+        if not 1 <= int(source.get("period_days", 30)) <= 3650:
+            raise ConfigError("Для hh_requests source.period_days должен быть от 1 до 3650.")
+        if not 1 <= int(source.get("per_page", 20)) <= 100:
+            raise ConfigError("Для hh_requests source.per_page должен быть от 1 до 100.")
+        if not 1 <= int(source.get("max_pages", 3)) <= 100:
+            raise ConfigError("Для hh_requests source.max_pages должен быть от 1 до 100.")
+        if int(source.get("max_vacancies", 50)) < 0:
+            raise ConfigError("Для hh_requests source.max_vacancies не может быть отрицательным.")
+        relevance_terms = source.get("relevance_terms", queries)
+        if not isinstance(relevance_terms, list) or not all(
+            isinstance(value, str) and value.strip() for value in relevance_terms
+        ):
+            raise ConfigError("Для hh_requests source.relevance_terms должен быть списком непустых строк.")
+        match_ratio = float(source.get("min_title_match_ratio", 0.75))
+        if not 0 < match_ratio <= 1:
+            raise ConfigError("Для hh_requests source.min_title_match_ratio должен быть больше 0 и не больше 1.")
 
     graph = {
         "min_children": 3,
@@ -222,9 +243,33 @@ def load_config(path: str | Path) -> AppConfig:
     if int(analysis["boilerplate_min_chars"]) < 20:
         raise ConfigError("analysis.boilerplate_min_chars должен быть не меньше 20.")
 
-    learning = {"max_per_node": 4, "check_links": False, **data.get("learning", {})}
+    learning = {
+        "max_per_node": 4,
+        "check_links": False,
+        "auto_collect": False,
+        "providers": ["stepik", "habr", "youtube"],
+        "provider_quotas": {"stepik": 2, "habr": 1, "youtube": 1},
+        "youtube_api_key_env": "YOUTUBE_API_KEY",
+        **data.get("learning", {}),
+    }
     if int(learning["max_per_node"]) < 1:
         raise ConfigError("learning.max_per_node должен быть положительным числом.")
+    if not isinstance(learning["auto_collect"], bool):
+        raise ConfigError("learning.auto_collect должен быть true или false.")
+    known_providers = set(COLLECTOR_PROVIDERS)
+    providers = learning["providers"]
+    if not isinstance(providers, list) or not providers or any(str(name) not in known_providers for name in providers):
+        raise ConfigError("learning.providers должен быть непустым списком из stepik, habr и youtube.")
+    if len(set(providers)) != len(providers):
+        raise ConfigError("learning.providers не должен содержать повторов.")
+    quotas = learning["provider_quotas"]
+    if not isinstance(quotas, dict) or any(key not in known_providers for key in quotas):
+        raise ConfigError("learning.provider_quotas должен быть объектом с ключами stepik, habr и youtube.")
+    for key, value in quotas.items():
+        if int(value) < 0:
+            raise ConfigError(f"learning.provider_quotas.{key} не может быть отрицательным.")
+    if not str(learning["youtube_api_key_env"]).strip():
+        raise ConfigError("learning.youtube_api_key_env должен содержать имя переменной окружения.")
     catalog_value = learning.get("catalog")
     learning_catalog_path = _resolve(config_path.parent, str(catalog_value)) if catalog_value else None
     if learning_catalog_path is not None and not learning_catalog_path.is_file():

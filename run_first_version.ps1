@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$bundledPython = Join-Path $env:USERPROFILE '.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
+$bundledPython = Join-Path $env:USERPROFILE 'venv\Scripts\python.exe'
 $pythonExecutable = if ($env:GRAPH_SERVICE_PYTHON) {
     $env:GRAPH_SERVICE_PYTHON
 } elseif (Test-Path -LiteralPath $bundledPython) {
@@ -26,11 +26,11 @@ if (-not $SkipTests) {
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 }
 
-& $pythonExecutable -m graph_service check-config --config 'examples/profession_config.json'
+& $pythonExecutable -m graph_service check-config --config 'examples/hh_profession_config.json'
 if ($LASTEXITCODE -ne 0) { throw 'Project configuration validation failed.' }
 
 $runOutput = & $pythonExecutable -m graph_service run `
-    --config 'examples/profession_config.json' `
+    --config 'examples/hh_profession_config.json' `
     --runs-root 'data/runs'
 if ($LASTEXITCODE -ne 0) { throw 'Pipeline failed.' }
 $report = ($runOutput | Out-String) | ConvertFrom-Json

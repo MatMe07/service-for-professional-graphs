@@ -1,0 +1,64 @@
+{
+    "version": "0.3.0-it-core",
+    "status": "Shared deterministic baseline for 15 IT professions; unknown terms remain review candidates.",
+    "nodes": [
+        {
+            "name": "Prometheus",
+            "aliases": [
+                "prometheus",
+                "prometheus monitoring"
+            ],
+            "path": [
+                "Инфраструктура"
+            ],
+            "kind": "infrastructure"
+        },
+        {
+            "name": "Grafana",
+            "aliases": [
+                "grafana"
+            ],
+            "path": [
+                "Инфраструктура"
+            ],
+            "kind": "infrastructure"
+        },
+        {
+            "name": "GitLab CI",
+            "aliases": [
+                "gitlab ci",
+                "gitlab ci/cd"
+            ],
+            "path": [
+                "Инфраструктура"
+            ],
+            "kind": "infrastructure"
+        },
+        {
+            "name": "GitHub Actions",
+            "aliases": [
+                "github actions",
+                "github action"
+            ],
+            "path": [
+                "Инфраструктура"
+            ],
+            "kind": "infrastructure"
+        },
+        {
+            "name": "Облачные платформы",
+            "aliases": [
+                "cloud platforms",
+                "облачные платформы",
+                "aws",
+                "azure",
+                "google cloud",
+                "yandex cloud"
+            ],
+            "path": [
+                "Инфраструктура"
+            ],
+            "kind": "infrastructure"
+        }
+    ]
+}

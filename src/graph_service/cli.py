@@ -63,6 +63,17 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--host", default="127.0.0.1", help="По умолчанию доступ только с этого компьютера.")
     serve.add_argument("--port", type=int, default=8765, help="Порт локального сервера.")
     serve.add_argument("--allow-network", action="store_true", help="Явно разрешить привязку не к localhost.")
+    
+    hh_requests = subparsers.add_parser("hh-requests", help="Сбор публичных HTML-страниц HH через requests + BeautifulSoup.")
+    hh_requests.add_argument("--profession", required=True, help="Название или slug профессии из каталога.")
+    hh_requests.add_argument("--catalog", default="dictionaries/professions.json", help="Каталог профессий.")
+    hh_requests.add_argument("--runs-root", default="data/runs", help="Каталог запусков.")
+    hh_requests.add_argument("--max-pages", type=int, default=3, help="Максимум страниц для парсинга.")
+    hh_requests.add_argument("--period-days", type=int, default=30, help="Только вакансии за последние N дней (1–3650).")
+    hh_requests.add_argument("--per-page", type=int, default=20, help="Ссылок на странице поиска (1–100).")
+    hh_requests.add_argument("--area", action="append", help="Код региона; параметр можно повторять (1 — Москва, 2 — СПб).")
+    hh_requests.add_argument("--max-vacancies", type=int, default=50, help="Общий лимит уникальных вакансий для профессии (0 = без лимита).")
+    
     ai_suggest = subparsers.add_parser("ai-suggest", help="Предложить новые ноды по unclassified.json без автодобавления.")
     ai_suggest.add_argument("--config", required=True, help="Конфигурация с разделом ai.")
     ai_suggest.add_argument("--run-dir", required=True, help="Папка запуска с unclassified.json.")
@@ -287,6 +298,64 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(json.dumps({**result, "output": str(output_path)}, ensure_ascii=False, indent=2))
         return 0
+    if args.command == "hh-requests":
+        try:
+            if not 1 <= args.max_pages <= 100:
+                raise ValueError("--max-pages должен быть от 1 до 100")
+            if not 1 <= args.period_days <= 3650:
+                raise ValueError("--period-days должен быть от 1 до 3650")
+            if not 1 <= args.per_page <= 100:
+                raise ValueError("--per-page должен быть от 1 до 100")
+            if args.max_vacancies < 0:
+                raise ValueError("--max-vacancies не может быть отрицательным")
+            catalog_path = Path(args.catalog).resolve()
+            catalog = load_profession_catalog(catalog_path)
+            profession, _, _ = resolve_profession(catalog, args.profession)
+            project_root = catalog_path.parent.parent
+            
+            config_path = project_root / "data" / "configs" / f"{profession['slug']}_hh_requests.json"
+            generated = build_profession_config(catalog, profession["slug"], config_path, project_root)
+            
+            generated["source"] = {
+                "type": "hh_requests",
+                "queries": profession["queries"],
+                "areas": args.area or ["1"],
+                "period_days": args.period_days,
+                "max_pages": args.max_pages,
+                "per_page": args.per_page,
+                "retries": 2,
+                "timeout_seconds": 30,
+                "request_interval_seconds": 3.0,
+                "detail_interval_seconds": 1.0,
+                "max_vacancies": args.max_vacancies,
+                "relevance_terms": list(
+                    dict.fromkeys(
+                        [
+                            profession["name"],
+                            *profession.get("aliases", []),
+                            *profession["queries"],
+                        ]
+                    )
+                ),
+                "min_title_match_ratio": 0.75,
+                "nodes_path": str((project_root / "dictionaries" / "canonical_nodes.json").resolve()),
+            }
+            
+            write_json(config_path, generated)
+            report = run_pipeline(
+                config_path=config_path,
+                runs_root=Path(args.runs_root),
+                vacancies_path=None,
+            )
+            
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0 if report["status"] != "failed" else 1
+            
+        except Exception as exc:
+            print(f"Ошибка: {exc}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            return 2
     parser.error("Неизвестная команда")
     return 2
 

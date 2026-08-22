@@ -6,20 +6,19 @@
   },
   "grades": ["junior", "middle", "senior"],
   "source": {
-    "type": "hh",
-    "host": "hh.ru",
+    "type": "hh_requests",
     "queries": ["ML инженер", "Machine Learning Engineer"],
+    "relevance_terms": ["ML-инженер", "ML Engineer", "Machine Learning Engineer", "ML инженер"],
+    "min_title_match_ratio": 0.75,
     "areas": ["1", "2"],
     "period_days": 30,
-    "date_chunk_days": 7,
     "per_page": 20,
-    "max_pages": 1,
+    "max_pages": 3,
+    "max_vacancies": 50,
     "retries": 3,
     "timeout_seconds": 30,
-    "user_agent": "ProfessionalGraphs/0.9 (mlprofessionalgraphs@gmail.com)",
-    "user_agent_env": "HH_USER_AGENT",
-    "token_env": "HH_API_TOKEN",
-    "include_inactive": false
+    "request_interval_seconds": 3.0,
+    "detail_interval_seconds": 1.0
   },
   "dictionaries": {
     "nodes": "../dictionaries/canonical_nodes.json"
@@ -70,11 +69,18 @@
     },
     "max_employer_share": 0.4
   },
-  "learning": {
-    "catalog": "../dictionaries/learning_resources.json",
+    "learning": {
+    "auto_collect": true,
     "max_per_node": 4,
-    "check_links": false
+    "providers": ["stepik", "habr", "youtube"],
+    "provider_quotas": {
+      "stepik": 2,
+      "habr": 1,
+      "youtube": 1
+    },
+    "youtube_api_key_env": "YOUTUBE_API_KEY"
   },
+  
   "assets": {
     "template_version": "0.2",
     "known_icons": {}
