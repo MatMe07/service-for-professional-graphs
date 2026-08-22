@@ -7,13 +7,60 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from graph_service.pipeline import _downgrade_sparse_root_issue, run_pipeline
+from graph_service.models import GradeDecision
+from graph_service.pipeline import (
+    _downgrade_missing_grade_issue,
+    _downgrade_sparse_root_issue,
+    run_pipeline,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class PipelineTests(unittest.TestCase):
+    def test_pipeline_reports_missing_grades_without_failed_status(self) -> None:
+        middle = GradeDecision(
+            grade="middle",
+            confidence=1.0,
+            conflict=False,
+            signals={"junior": [], "middle": ["test"], "senior": []},
+            subgrade="middle",
+            scores={"junior": 0, "middle": 1, "senior": 0},
+            resolution="test",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            with patch("graph_service.pipeline.decide_grade", return_value=middle):
+                report = run_pipeline(
+                    config_path=PROJECT_ROOT / "examples" / "profession_config.json",
+                    vacancies_path=PROJECT_ROOT / "examples" / "sample_vacancies.json",
+                    runs_root=Path(directory) / "runs",
+                    run_id="missing-grades",
+                )
+        self.assertNotEqual(report["status"], "failed")
+        self.assertEqual(report["missing_grades"], ["junior", "senior"])
+        self.assertEqual(
+            report["grade_vacancy_counts"],
+            {"junior": 0, "middle": 9, "senior": 0},
+        )
+
+    def test_empty_graph_is_warning_when_grade_has_no_vacancies(self) -> None:
+        issues = [
+            {
+                "severity": "error",
+                "path": "DevOps-инженер",
+                "message": "Корень графа не должен быть пустым.",
+            }
+        ]
+        _downgrade_missing_grade_issue(
+            issues,
+            root_name="DevOps-инженер",
+            grade="junior",
+            vacancy_count=0,
+        )
+        self.assertEqual(issues[0]["severity"], "warning")
+        self.assertIn("нет вакансий уровня junior", issues[0]["message"])
+
     def test_sparse_root_is_warning_only_for_small_corpus(self) -> None:
         issues = [
             {"severity": "error", "path": "DevOps-инженер", "message": "У ветки 2 дочерних нод; целевое правило требует минимум 3."},

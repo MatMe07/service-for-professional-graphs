@@ -79,11 +79,32 @@ def validate_run_directory(path: str | Path) -> dict[str, Any]:
         )
 
     validation_path = root / "output" / "validation_report.json"
+    missing_grades: list[str] = []
     if validation_path.is_file():
         try:
             validation = json.loads(validation_path.read_text(encoding="utf-8"))
+            missing_grades = _missing_grades(validation)
             if validation.get("status") == "failed":
-                errors.append({"path": "output/validation_report.json", "message": "Проверка продукта завершилась ошибкой."})
+                blocking = _blocking_report_errors(validation, missing_grades)
+                if blocking or not missing_grades:
+                    errors.append({"path": "output/validation_report.json", "message": "Проверка продукта завершилась ошибкой."})
+                elif missing_grades:
+                    warnings.append(
+                        {
+                            "path": "output/validation_report.json",
+                            "message": (
+                                "Отчёт цел, но в выборке нет вакансий уровней: "
+                                f"{', '.join(missing_grades)}."
+                            ),
+                        }
+                    )
+            elif missing_grades:
+                warnings.append(
+                    {
+                        "path": "output/validation_report.json",
+                        "message": f"В выборке нет вакансий уровней: {', '.join(missing_grades)}.",
+                    }
+                )
         except (OSError, UnicodeError, json.JSONDecodeError):
             pass
 
@@ -96,4 +117,56 @@ def validate_run_directory(path: str | Path) -> dict[str, Any]:
         "normalized_vacancies": len(normalized_files),
         "raw_vacancies": len(raw_files),
         "graph_files": len(graph_files),
+        "missing_grades": missing_grades,
     }
+
+
+def _missing_grades(validation: dict[str, Any]) -> list[str]:
+    explicit = validation.get("missing_grades")
+    if isinstance(explicit, list):
+        return [str(grade) for grade in explicit]
+    leaf_counts = validation.get("leaf_counts")
+    graph_issues = validation.get("graph_issues")
+    if not isinstance(leaf_counts, dict) or not isinstance(graph_issues, dict):
+        return []
+    result: list[str] = []
+    for grade, count in leaf_counts.items():
+        issues = graph_issues.get(grade, [])
+        if count == 0 and isinstance(issues, list) and any(
+            isinstance(issue, dict)
+            and issue.get("message") == "Корень графа не должен быть пустым."
+            for issue in issues
+        ):
+            result.append(str(grade))
+    return result
+
+
+def _blocking_report_errors(
+    validation: dict[str, Any],
+    missing_grades: list[str],
+) -> list[dict[str, Any]]:
+    blocking: list[dict[str, Any]] = []
+    graph_issues = validation.get("graph_issues")
+    if isinstance(graph_issues, dict):
+        for grade, issues in graph_issues.items():
+            if not isinstance(issues, list):
+                continue
+            for issue in issues:
+                if not isinstance(issue, dict) or issue.get("severity") != "error":
+                    continue
+                if (
+                    str(grade) in missing_grades
+                    and issue.get("message") == "Корень графа не должен быть пустым."
+                ):
+                    continue
+                blocking.append(issue)
+    product_issues = validation.get("product_issues")
+    if isinstance(product_issues, list):
+        blocking.extend(
+            issue
+            for issue in product_issues
+            if isinstance(issue, dict) and issue.get("severity") == "error"
+        )
+    if not isinstance(graph_issues, dict) and not isinstance(product_issues, list):
+        blocking.append({"message": "Отчёт не содержит детализации ошибок."})
+    return blocking

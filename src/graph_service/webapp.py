@@ -72,17 +72,29 @@ class _JobRegistry:
                     )
                 return
             report_failed = report.get("status") == "failed"
+            missing_grades = list(report.get("missing_grades") or [])
+            incomplete = bool(missing_grades) and not report_failed
+            grade_labels = {"junior": "Junior", "middle": "Middle", "senior": "Senior"}
+            missing_labels = ", ".join(grade_labels.get(grade, str(grade)) for grade in missing_grades)
             with self._lock:
                 current = self._jobs[job_id]
                 current.update(
                     {
                         "status": "completed",
                         "progress": 100,
-                        "stage": "Готово с замечаниями" if report_failed else "Готово",
+                        "stage": (
+                            "Недостаточно данных"
+                            if incomplete
+                            else ("Готово с замечаниями" if report_failed else "Готово")
+                        ),
                         "message": (
                             "Отчёт построен, но проверка нашла ошибки в его структуре."
                             if report_failed
-                            else "Вакансии обработаны, отчёт готов."
+                            else (
+                                f"Отчёт построен, но в выборке нет вакансий уровней: {missing_labels}."
+                                if incomplete
+                                else "Вакансии обработаны, отчёт готов."
+                            )
                         ),
                         "result": report,
                     }
@@ -435,6 +447,7 @@ PAGE = r'''<!doctype html>
     .progress-track { height: 14px; overflow: hidden; border-radius: 999px; background: #d8e3fa; box-shadow: inset 0 1px 2px rgba(23,61,156,.12); }
     .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2357d8, #38a4ff); transition: width .35s ease; }
     .progress-message { margin: 10px 0 0; color: #405d95; font-size: 14px; line-height: 1.45; }
+    .source-hint { margin: 10px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
     .result-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
     .result-link { display: none; padding: 9px 13px; border-radius: 9px; background: #17233a; color: white; font-weight: 750; text-decoration: none; }
     details { margin-top: 14px; }
@@ -498,6 +511,7 @@ PAGE = r'''<!doctype html>
           </div>
         </div>
         <button class="run-button" onclick="runHHHtml()">Собрать вакансии с HH.ru</button>
+        <p class="source-hint">Для графов всех трёх уровней обычно требуется 3–5 страниц: среди первых результатов может не оказаться Junior.</p>
       </section>
 
       <section class="card source-card public">
@@ -589,9 +603,17 @@ PAGE = r'''<!doctype html>
     function renderResult(data, completionMessage = '') {
       const runDirectory = data.run_directory || data.run_dir;
       const validationWarning = data.status === 'failed' && Boolean(runDirectory);
-      const ok = data.status !== 'error' && !validationWarning;
-      resultState.className = `result-state ${validationWarning ? 'warning' : (ok ? 'success' : 'error')}`;
-      if (validationWarning) {
+      const missingGrades = Array.isArray(data.missing_grades) ? data.missing_grades : [];
+      const incomplete = missingGrades.length > 0;
+      const ok = data.status !== 'error' && !validationWarning && !incomplete;
+      resultState.className = `result-state ${(validationWarning || incomplete) ? 'warning' : (ok ? 'success' : 'error')}`;
+      if (incomplete) {
+        const gradeNames = {junior:'Junior', middle:'Middle', senior:'Senior'};
+        const labels = missingGrades.map(grade => gradeNames[grade] || grade).join(', ');
+        const levelWord = missingGrades.length === 1 ? 'уровня' : 'уровней';
+        const graphWord = missingGrades.length === 1 ? 'Граф этого уровня пуст' : 'Графы этих уровней пусты';
+        resultState.textContent = `Отчёт построен, но в выборке нет вакансий ${levelWord} ${labels}. ${graphWord} — увеличьте период или число страниц.`;
+      } else if (validationWarning) {
         const collected = data.vacancies_collected
           ? ` по ${data.vacancies_collected} вакансиям`
           : '';

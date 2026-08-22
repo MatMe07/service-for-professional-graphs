@@ -192,6 +192,11 @@ def run_pipeline(
     included = [vacancy for vacancy in vacancies if vacancy.vacancy_id in vacancy_grades]
     if not included:
         raise PipelineError("После применения правил грейда не осталось вакансий.")
+    grade_vacancy_counts = {
+        grade: sum(vacancy_grades[vacancy.vacancy_id] == grade for vacancy in included)
+        for grade in config.grades
+    }
+    missing_grades = [grade for grade, count in grade_vacancy_counts.items() if count == 0]
 
     _report_progress(
         progress_callback,
@@ -254,6 +259,12 @@ def run_pipeline(
     # Малый корпус закономерно может дать меньше трёх верхнеуровневых веток.
     # Это влияет на полноту графа, но не означает, что сбор или построение сломались.
     for grade, issues in graph_issues.items():
+        _downgrade_missing_grade_issue(
+            issues,
+            root_name=config.profession_name,
+            grade=grade,
+            vacancy_count=grade_vacancy_counts[grade],
+        )
         _downgrade_sparse_root_issue(
             issues,
             root_name=config.profession_name,
@@ -424,6 +435,8 @@ def run_pipeline(
         "dictionary_version": dictionary_version,
         "vacancies_collected": len(vacancies),
         "vacancies_included": len(included),
+        "grade_vacancy_counts": grade_vacancy_counts,
+        "missing_grades": missing_grades,
         "inactive_vacancies_excluded": inactive_excluded,
         "search_responses_saved": len(collection.search_responses),
         "vacancy_versions": version_statuses,
@@ -520,6 +533,28 @@ def _downgrade_sparse_root_issue(
         ):
             issue["severity"] = "warning"
             issue["message"] += " Для малого корпуса это предупреждение, а не ошибка запуска."
+
+
+def _downgrade_missing_grade_issue(
+    issues: list[dict[str, str]],
+    *,
+    root_name: str,
+    grade: str,
+    vacancy_count: int,
+) -> None:
+    if vacancy_count != 0:
+        return
+    for issue in issues:
+        if (
+            issue["severity"] == "error"
+            and issue["path"] == root_name
+            and issue["message"] == "Корень графа не должен быть пустым."
+        ):
+            issue["severity"] = "warning"
+            issue["message"] = (
+                f"В выборке нет вакансий уровня {grade}; граф этого уровня пуст. "
+                "Увеличьте период или число страниц для более полного результата."
+            )
 
 
 def _leaf_paths(graph: dict[str, Any]) -> set[str]:
