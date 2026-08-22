@@ -178,3 +178,43 @@ python -m graph_service ai-suggest `
 - планировщик и база данных не добавлялись: Никита разрешил JSON и запуск по кнопке.
 
 Краткий сценарий показа находится в `FIRST_VERSION.md`, сверка с 99 требованиями — в `TZ_COMPLIANCE.md`, а актуальные вопросы — в `QUESTIONS_FOR_NIKITA.md`.
+
+## Автоматический сбор учебных материалов
+
+Реализован автосбор ссылок на обучение для каждой ноды графа (навыки, технологии, методы):
+
+- парсер Stepik (`src/graph_service/learning/parsers/stepik.py`) — бесплатные публичные курсы через официальный API `stepik.org/api/courses`; для каждого курса сохраняются язык, уровень, длительность и наличие сертификата;
+- парсер Habr (`src/graph_service/learning/parsers/habr.py`) — русскоязычные статьи по названию навыка через страницу поиска habr.com;
+- парсер YouTube (`src/graph_service/learning/parsers/youtube.py`) — обучающие видео «<навык> tutorial» через YouTube Data API v3; ключ читается из переменной окружения `YOUTUBE_API_KEY` (можно положить в `.env`); без ключа источник просто пропускается;
+- агрегатор (`src/graph_service/learning/aggregator.py`) — собирает результаты всех парсеров, дедуплицирует ссылки по нормализованному URL и оставляет максимум 4 материала на ноду с балансировкой: сначала официальная документация, затем 2 курса Stepik, 1 статья Habr, 1 видео YouTube; если источник ничего не нашёл, его слот отдаётся следующему по приоритету;
+- интеграция в конвейер — при `"auto_collect": true` в разделе `learning` конфигурации профессии собранные материалы сохраняются в папку запуска (`collected_learning_resources.json`) и объединяются со статическим каталогом перед построением словаря курсов;
+- скрипт `scripts/generate_learning_catalog.py` — отдельная генерация каталога для всех нод словаря: сохраняет официальную документацию из текущего каталога, дособирает материалы парсерами, умеет проверять доступность ссылок (`--check-links`) и печатает сводку покрытия.
+
+### Автоматический запуск одним скриптом
+
+```powershell
+.\collect_all.ps1
+```
+
+Скрипт выполняет полный цикл для профессий из списка `$professions` в начале файла (по умолчанию включена `python_developer`, остальные раскомментируются по необходимости):
+
+1. подхватывает переменные из `.env`, например `YOUTUBE_API_KEY`;
+2. для каждой профессии запускает автоматический сбор вакансий HH: `python -m graph_service hh-requests`;
+3. находит последнюю папку запуска этой профессии в `data/runs`;
+4. вызывает `scripts/generate_learning_catalog.py`: официальная документация берётся из `dictionaries/learning_resources.json`, список нод — из `<run>/input/nodes.json`, готовый набор материалов сохраняется в `<run>/learning_resources.json`.
+
+Тот же генератор вручную, без PowerShell:
+
+```powershell
+$env:PYTHONPATH = "$PWD\src"
+$env:YOUTUBE_API_KEY = "ключ"   # необязательно: только для видео с YouTube
+python scripts/generate_learning_catalog.py `
+  --nodes dictionaries/canonical_nodes.json `
+  --catalog dictionaries/learning_resources.json `
+  --providers stepik,habr,youtube `
+  --max-per-node 4
+```
+
+Без `--output` обновляется сам файл `dictionaries/learning_resources.json`; флаг `--no-collect` позволяет пересобрать файл офлайн, а `--quotas` — изменить распределение слотов между источниками.
+
+Автосбор покрыт автоматическими тестами (`tests/test_parsers.py`, `tests/test_aggregator.py`): сетевые ответы подменяются заглушками, поэтому тесты ходят только офлайн.

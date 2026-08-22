@@ -205,6 +205,15 @@ def run_pipeline(
     used_names: set[str] = set()
     for graph in graphs.values():
         used_names.update(collect_leaf_names(graph))
+    
+    # Сохраняем список нод для учебных материалов
+    node_map = {node.name: node for node in nodes}
+    nodes_list = [
+        {"name": name, "path": node_map[name].path if name in node_map else []}
+        for name in sorted(used_names)
+    ]
+    write_json(storage.input_dir / "nodes.json", {"version": dictionary_version, "nodes": nodes_list})
+    
     leaf_counts = {grade: len(collect_leaf_names(graph)) for grade, graph in graphs.items()}
     target_leaf_min = int(config.graph.get("target_leaf_min", 100))
     target_leaf_max = int(config.graph.get("target_leaf_max", 180))
@@ -225,7 +234,6 @@ def run_pipeline(
     date_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     image_root = storage.output_dir / f"profession_graph_node_images_{date_stamp}"
     course_root = storage.output_dir / f"profession_graph_node_courses_{date_stamp}"
-    node_map = {node.name: node for node in nodes}
     image_contexts: dict[str, list[dict[str, Any]]] = {name: [] for name in used_names}
     for grade, grade_counts in counts.items():
         for name in sorted(set(grade_counts) & used_names):
