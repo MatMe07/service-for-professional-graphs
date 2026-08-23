@@ -11,6 +11,7 @@ from typing import Any
 
 import requests
 from bs4 import BeautifulSoup, Tag
+import random
 
 from ..config import load_node_definitions
 from ..models import CollectionResult, Vacancy

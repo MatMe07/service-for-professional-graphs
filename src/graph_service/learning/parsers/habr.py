@@ -1,3 +1,4 @@
+# habr.py
 from __future__ import annotations
 
 import re
@@ -9,7 +10,7 @@ from bs4 import BeautifulSoup
 from .base import LearningProvider, ParserError, clean_text
 
 
-SEARCH_URL = "https://habr.com/ru/search/"
+SEARCH_URL = "https://habr.com/kek/v2/articles/"
 HABR_ROOT = "https://habr.com"
 ARTICLE_HREF_PATTERN = re.compile(
     r"^/ru/(?:articles|post)/\d+/?$|^/ru/companies/[^/?#]+/(?:articles|blog)/\d+/?$"
@@ -20,30 +21,38 @@ class HabrProvider(LearningProvider):
     name = "habr"
 
     def search(self, node_name: str, limit: int) -> list[dict[str, Any]]:
-        response = self.get(
-            SEARCH_URL,
-            params={"q": node_name, "target_type": "posts", "order": "relevance"},
-        )
+        params = {
+            "query": node_name,
+            "order": "relevance",
+            "fl": "ru",
+            "hl": "ru",
+            "page": 1,
+            "perPage": limit,
+        }
+        response = self.get(SEARCH_URL, params=params)
         if response.status_code != 200:
             raise ParserError(f"Habr вернул HTTP {response.status_code} для запроса «{node_name}».")
-        soup = BeautifulSoup(response.text, "html.parser")
-        anchors = [anchor for anchor in soup.select("a.tm-title__link") if anchor.get("href")]
-        if not anchors:
-            anchors = [
-                anchor
-                for anchor in soup.find_all("a", href=True)
-                if ARTICLE_HREF_PATTERN.match(str(anchor["href"]).strip())
-            ]
+        
+        data = response.json()
         results: list[dict[str, Any]] = []
         seen: set[str] = set()
-        for anchor in anchors:
-            href = str(anchor["href"]).strip()
-            if not ARTICLE_HREF_PATTERN.match(href):
+        
+        publication_ids = data.get("publicationIds", [])
+        publications = data.get("publicationRefs", {})
+        
+        for pub_id in publication_ids:
+            article = publications.get(pub_id)
+            if not article:
                 continue
-            url = urljoin(HABR_ROOT, href)
-            title = clean_text(anchor.get_text())
+            
+            title_html = article.get("titleHtml", "")
+            title = clean_text(re.sub(r'<[^>]+>', '', title_html))
             if not title:
                 continue
+            
+            article_id = article.get("id")
+            url = urljoin(HABR_ROOT, f"/ru/news/{article_id}/")
+            
             normalized = self._to_resource(node_name, title, url)
             if normalized["url"] in seen:
                 continue
@@ -51,6 +60,7 @@ class HabrProvider(LearningProvider):
             results.append(normalized)
             if len(results) >= limit:
                 break
+        
         return results
 
     def _to_resource(self, node_name: str, title: str, url: str) -> dict[str, Any]:
